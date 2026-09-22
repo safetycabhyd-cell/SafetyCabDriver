@@ -1,4 +1,4 @@
-name: Build SafetyCabDriver APK
+Build SafetyCabDriver APK
 
 on:
   workflow_dispatch:
