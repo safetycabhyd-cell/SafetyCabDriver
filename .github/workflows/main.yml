@@ -20,6 +20,26 @@ jobs:
           distribution: temurin
           java-version: '8'
 
+      - name: Prepare clean Android SDK
+        run: |
+          export ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk
+          export ANDROID_HOME=$ANDROID_SDK_ROOT
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+
+          cp -R "$ANDROID_HOME/cmdline-tools/latest" \
+            "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+
+          yes | sdkmanager --licenses || true
+
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;30.0.3"
+
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
