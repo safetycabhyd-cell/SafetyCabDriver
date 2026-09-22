@@ -14,37 +14,29 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
 
-      # Android SDK tools require Java 17
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Prepare Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install required Android SDK
         run: |
-          echo "Java version:"
-          java -version
-
-          echo "Android SDK:"
-          echo "$ANDROID_SDK_ROOT"
-
-          yes | sdkmanager --licenses >/dev/null || true
-
           sdkmanager "platforms;android-31" "build-tools;31.0.0"
 
-      # Old SafetyCabDriver Gradle/AGP project
-      # Build with Java 11 instead of Java 8
       - name: Set up Java 11
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'
 
-      - name: Check Java version
-        run: |
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
+      - name: Check Java
+        run: java -version
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
