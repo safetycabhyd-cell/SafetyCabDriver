@@ -1,19 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:fillViewport="true">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"
+        android:padding="20dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- App Title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SAFETY CAB"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#008577"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Driver Panel"
+            android:textSize="18sp"
+            android:textColor="#555555"
+            android:gravity="center"
+            android:paddingBottom="24dp" />
+
+        <!-- Driver ID Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp"
+            android:background="#EEEEEE">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Driver ID"
+                android:textSize="14sp"
+                android:textColor="#666666" />
+
+            <TextView
+                android:id="@+id/tvDriverId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="DC001"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#222222"
+                android:paddingTop="5dp" />
+
+        </LinearLayout>
+
+        <!-- Duty Status -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Duty Status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:paddingTop="28dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvDutyStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OFF DUTY"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#D32F2F"
+            android:gravity="center"
+            android:padding="15dp" />
+
+        <Button
+            android:id="@+id/btnDuty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="START DUTY"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp" />
+
+        <!-- GPS Status -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GPS Status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:paddingTop="28dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvGpsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GPS: Not Started"
+            android:textSize="17sp"
+            android:textColor="#555555"
+            android:padding="12dp" />
+
+        <!-- Firebase Status -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Connection Status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvConnectionStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Firebase: Not Connected"
+            android:textSize="17sp"
+            android:textColor="#555555"
+            android:padding="12dp" />
+
+        <!-- Last Location -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Last Location"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvLastLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Latitude: --&#10;Longitude: --&#10;Last Update: --"
+            android:textSize="16sp"
+            android:textColor="#555555"
+            android:padding="12dp" />
+
+        <!-- Tracking Information -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tracking"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvTrackingStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tracking: Stopped"
+            android:textSize="17sp"
+            android:textColor="#555555"
+            android:padding="12dp" />
+
+        <!-- Information -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Safety Cab Driver App"
+            android:textSize="14sp"
+            android:textColor="#777777"
+            android:gravity="center"
+            android:paddingTop="35dp"
+            android:paddingBottom="20dp" />
+
+    </LinearLayout>
+
+</ScrollView>
