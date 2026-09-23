@@ -18,21 +18,33 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+
 
 class MainActivity : AppCompatActivity() {
 
     private val LOCATION_PERMISSION_REQUEST = 1001
+
+    private val DRIVER_ID = "DC001"
 
     private lateinit var btnDuty: Button
     private lateinit var tvDutyStatus: TextView
     private lateinit var tvGpsStatus: TextView
     private lateinit var tvTrackingStatus: TextView
     private lateinit var tvLastLocation: TextView
+    private lateinit var tvConnectionStatus: TextView
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
+    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var firebaseDatabase: FirebaseDatabase
+
     private var dutyOn = false
+    private var firebaseReady = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,10 +57,12 @@ class MainActivity : AppCompatActivity() {
         tvGpsStatus = findViewById(R.id.tvGpsStatus)
         tvTrackingStatus = findViewById(R.id.tvTrackingStatus)
         tvLastLocation = findViewById(R.id.tvLastLocation)
+        tvConnectionStatus = findViewById(R.id.tvConnectionStatus)
 
         fusedLocationClient =
             LocationServices.getFusedLocationProviderClient(this)
 
+        initializeFirebase()
 
         locationCallback = object : LocationCallback() {
 
@@ -73,6 +87,8 @@ class MainActivity : AppCompatActivity() {
 
                     tvTrackingStatus.text =
                         "Tracking: GPS Active"
+
+                    sendLocationToFirebase(location)
                 }
             }
         }
@@ -86,6 +102,106 @@ class MainActivity : AppCompatActivity() {
                 stopDuty()
             }
         }
+    }
+
+
+    private fun initializeFirebase() {
+
+        try {
+
+            var firebaseApp = FirebaseApp.getApps(this).firstOrNull()
+
+            if (firebaseApp == null) {
+
+                val options =
+                    FirebaseOptions.Builder()
+                        .setApiKey(
+                            "AIzaSyBqSICccKKX94x04rjCUHXjW5EJoaI10Bc"
+                        )
+                        .setApplicationId(
+                            "1:900129993912:web:48c98c4d62154d0f39704d"
+                        )
+                        .setProjectId(
+                            "safety-cab-radar"
+                        )
+                        .setDatabaseUrl(
+                            "https://safety-cab-radar-default-rtdb.asia-southeast1.firebasedatabase.app"
+                        )
+                        .setStorageBucket(
+                            "safety-cab-radar.firebasestorage.app"
+                        )
+                        .setGcmSenderId(
+                            "900129993912"
+                        )
+                        .build()
+
+                firebaseApp =
+                    FirebaseApp.initializeApp(
+                        this,
+                        options
+                    )
+            }
+
+            if (firebaseApp == null) {
+
+                tvConnectionStatus.text =
+                    "Firebase: Initialization Failed"
+
+                return
+            }
+
+            firebaseAuth =
+                FirebaseAuth.getInstance(firebaseApp)
+
+            firebaseDatabase =
+                FirebaseDatabase.getInstance(firebaseApp)
+
+            tvConnectionStatus.text =
+                "Firebase: Connecting..."
+
+            signInFirebase()
+
+        } catch (e: Exception) {
+
+            firebaseReady = false
+
+            tvConnectionStatus.text =
+                "Firebase: Error"
+        }
+    }
+
+
+    private fun signInFirebase() {
+
+        if (firebaseAuth.currentUser != null) {
+
+            firebaseReady = true
+
+            tvConnectionStatus.text =
+                "Firebase: Connected"
+
+            return
+        }
+
+        firebaseAuth
+            .signInAnonymously()
+            .addOnCompleteListener { task ->
+
+                if (task.isSuccessful) {
+
+                    firebaseReady = true
+
+                    tvConnectionStatus.text =
+                        "Firebase: Connected"
+
+                } else {
+
+                    firebaseReady = false
+
+                    tvConnectionStatus.text =
+                        "Firebase: Login Failed"
+                }
+            }
     }
 
 
@@ -109,7 +225,6 @@ class MainActivity : AppCompatActivity() {
 
             return
         }
-
 
         dutyOn = true
 
@@ -158,6 +273,74 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun sendLocationToFirebase(
+        location: Location
+    ) {
+
+        if (!firebaseReady) {
+            return
+        }
+
+        try {
+
+            val databaseReference =
+                firebaseDatabase
+                    .getReference("liveLocations")
+                    .child(DRIVER_ID)
+
+            val locationData =
+                HashMap<String, Any>()
+
+            locationData["driverId"] =
+                DRIVER_ID
+
+            locationData["lat"] =
+                location.latitude
+
+            locationData["lng"] =
+                location.longitude
+
+            locationData["online"] =
+                true
+
+            locationData["duty"] =
+                dutyOn
+
+            locationData["accuracy"] =
+                location.accuracy.toDouble()
+
+            locationData["speed"] =
+                location.speed.toDouble()
+
+            locationData["heading"] =
+                location.bearing.toDouble()
+
+            locationData["updatedAt"] =
+                System.currentTimeMillis()
+
+
+            databaseReference
+                .setValue(locationData)
+                .addOnSuccessListener {
+
+                    tvConnectionStatus.text =
+                        "Firebase: Connected"
+
+                }
+                .addOnFailureListener {
+
+                    tvConnectionStatus.text =
+                        "Firebase: Write Failed"
+                }
+
+        } catch (e: Exception) {
+
+            tvConnectionStatus.text =
+                "Firebase: Write Error"
+        }
+    }
+
+
     private fun stopDuty() {
 
         dutyOn = false
@@ -165,6 +348,38 @@ class MainActivity : AppCompatActivity() {
         fusedLocationClient.removeLocationUpdates(
             locationCallback
         )
+
+        if (firebaseReady) {
+
+            try {
+
+                val databaseReference =
+                    firebaseDatabase
+                        .getReference("liveLocations")
+                        .child(DRIVER_ID)
+
+                val updates =
+                    HashMap<String, Any>()
+
+                updates["driverId"] =
+                    DRIVER_ID
+
+                updates["online"] =
+                    false
+
+                updates["duty"] =
+                    false
+
+                updates["updatedAt"] =
+                    System.currentTimeMillis()
+
+                databaseReference.updateChildren(
+                    updates
+                )
+            } catch (e: Exception) {
+                // Ignore Firebase stop update error
+            }
+        }
 
         tvDutyStatus.text = "OFF DUTY"
         btnDuty.text = "START DUTY"
@@ -211,6 +426,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
 
         if (::fusedLocationClient.isInitialized) {
+
             fusedLocationClient.removeLocationUpdates(
                 locationCallback
             )
