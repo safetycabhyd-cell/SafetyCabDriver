@@ -7,15 +7,17 @@ import android.os.Bundle
 import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
+
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     private var dutyOn = false
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -46,9 +49,12 @@ class MainActivity : AppCompatActivity() {
         fusedLocationClient =
             LocationServices.getFusedLocationProviderClient(this)
 
+
         locationCallback = object : LocationCallback() {
 
-            override fun onLocationResult(locationResult: LocationResult) {
+            override fun onLocationResult(
+                locationResult: LocationResult
+            ) {
 
                 val location: Location? =
                     locationResult.lastLocation
@@ -71,6 +77,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+
         btnDuty.setOnClickListener {
 
             if (!dutyOn) {
@@ -81,9 +88,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     private fun startDuty() {
 
-        if (ContextCompat.checkSelfPermission(
+        if (
+            ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
@@ -101,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+
         dutyOn = true
 
         tvDutyStatus.text = "ON DUTY"
@@ -110,6 +120,7 @@ class MainActivity : AppCompatActivity() {
 
         startLocationUpdates()
     }
+
 
     private fun startLocationUpdates() {
 
@@ -124,7 +135,9 @@ class MainActivity : AppCompatActivity() {
                     LocationRequest.PRIORITY_HIGH_ACCURACY
             }
 
-        if (ActivityCompat.checkSelfPermission(
+
+        if (
+            ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED &&
@@ -136,12 +149,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             locationCallback,
             Looper.getMainLooper()
         )
     }
+
 
     private fun stopDuty() {
 
@@ -157,6 +172,7 @@ class MainActivity : AppCompatActivity() {
         tvTrackingStatus.text = "Tracking: Stopped"
     }
 
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -169,12 +185,17 @@ class MainActivity : AppCompatActivity() {
             grantResults
         )
 
+
         if (requestCode == LOCATION_PERMISSION_REQUEST) {
 
-            if (grantResults.isNotEmpty() &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (
+                grantResults.isNotEmpty() &&
+                grantResults[0] ==
+                PackageManager.PERMISSION_GRANTED
             ) {
+
                 startDuty()
+
             } else {
 
                 tvGpsStatus.text =
@@ -184,5 +205,17 @@ class MainActivity : AppCompatActivity() {
                     "Tracking: Stopped"
             }
         }
+    }
+
+
+    override fun onDestroy() {
+
+        if (::fusedLocationClient.isInitialized) {
+            fusedLocationClient.removeLocationUpdates(
+                locationCallback
+            )
+        }
+
+        super.onDestroy()
     }
 }
