@@ -4,8 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 
@@ -28,6 +31,7 @@ import com.google.firebase.database.FirebaseDatabase
 class MainActivity : AppCompatActivity() {
 
     private val LOCATION_PERMISSION_REQUEST = 1001
+    private val BACKGROUND_LOCATION_PERMISSION_REQUEST = 1002
 
     private val DRIVER_ID = "DC001"
 
@@ -46,6 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     private var dutyOn = false
     private var firebaseReady = false
+    private var waitingForBackgroundPermission = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -210,6 +215,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDuty() {
 
+        // First check normal GPS permission
         if (
             ContextCompat.checkSelfPermission(
                 this,
@@ -228,6 +234,13 @@ class MainActivity : AppCompatActivity() {
 
             return
         }
+
+
+        // Check Background Location
+        if (!ensureBackgroundLocationPermission()) {
+            return
+        }
+
 
         dutyOn = true
 
@@ -267,6 +280,83 @@ class MainActivity : AppCompatActivity() {
 
         // Keep UI GPS active while app is open
         startLocationUpdates()
+    }
+
+
+    private fun ensureBackgroundLocationPermission(): Boolean {
+
+        // Android 10 and above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+
+            val backgroundPermission =
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                )
+
+            if (
+                backgroundPermission ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+
+                return true
+            }
+
+
+            /*
+             * Android 11+ does not normally show
+             * "Allow all the time" directly in the
+             * permission popup.
+             *
+             * Open this app's Settings page so the user
+             * can select:
+             *
+             * Location -> Allow all the time
+             */
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+
+                waitingForBackgroundPermission = true
+
+                try {
+
+                    val intent =
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        )
+
+                    intent.data =
+                        Uri.parse(
+                            "package:$packageName"
+                        )
+
+                    startActivity(intent)
+
+                } catch (e: Exception) {
+
+                    tvTrackingStatus.text =
+                        "Tracking: Open App Settings"
+
+                }
+
+                return false
+            }
+
+
+            // Android 10
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ),
+                BACKGROUND_LOCATION_PERMISSION_REQUEST
+            )
+
+            return false
+        }
+
+
+        return true
     }
 
 
@@ -468,6 +558,7 @@ class MainActivity : AppCompatActivity() {
         )
 
 
+        // Normal GPS permission result
         if (
             requestCode ==
             LOCATION_PERMISSION_REQUEST
@@ -488,6 +579,78 @@ class MainActivity : AppCompatActivity() {
 
                 tvTrackingStatus.text =
                     "Tracking: Stopped"
+            }
+        }
+
+
+        // Android 10 Background Location result
+        if (
+            requestCode ==
+            BACKGROUND_LOCATION_PERMISSION_REQUEST
+        ) {
+
+            val granted =
+                grantResults.isNotEmpty() &&
+                grantResults[0] ==
+                PackageManager.PERMISSION_GRANTED
+
+            if (granted) {
+
+                startDuty()
+
+            } else {
+
+                tvTrackingStatus.text =
+                    "Tracking: Background Permission Needed"
+            }
+        }
+    }
+
+
+    override fun onResume() {
+
+        super.onResume()
+
+        /*
+         * When user returns from App Settings,
+         * check Background Location again.
+         */
+
+        if (waitingForBackgroundPermission) {
+
+            waitingForBackgroundPermission = false
+
+            val backgroundPermission =
+                if (
+                    Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.Q
+                ) {
+
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    )
+
+                } else {
+
+                    PackageManager.PERMISSION_GRANTED
+                }
+
+
+            if (
+                backgroundPermission ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+
+                tvTrackingStatus.text =
+                    "Tracking: Background Permission Granted"
+
+                startDuty()
+
+            } else {
+
+                tvTrackingStatus.text =
+                    "Tracking: Background Permission Not Granted"
             }
         }
     }
