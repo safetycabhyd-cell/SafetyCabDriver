@@ -22,6 +22,8 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 
 import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 import java.util.HashMap
@@ -54,14 +56,20 @@ class DriverLocationService : Service() {
     private lateinit var locationCallback:
             LocationCallback
 
+    private lateinit var firebaseAuth:
+            FirebaseAuth
+
+    private lateinit var firebaseDatabase:
+            FirebaseDatabase
+
+    private var firebaseReady = false
+
 
     override fun onCreate() {
 
         super.onCreate()
 
-
         createNotificationChannel()
-
 
         fusedLocationClient =
             LocationServices
@@ -78,7 +86,6 @@ class DriverLocationService : Service() {
                     val location: Location? =
                         locationResult.lastLocation
 
-
                     if (location != null) {
 
                         sendLocationToFirebase(
@@ -87,6 +94,9 @@ class DriverLocationService : Service() {
                     }
                 }
             }
+
+
+        initializeFirebase()
     }
 
 
@@ -96,8 +106,22 @@ class DriverLocationService : Service() {
         startId: Int
     ): Int {
 
+        /*
+         * IMPORTANT:
+         *
+         * MainActivity may start the service without
+         * an ACTION. Therefore any start command that
+         * is NOT ACTION_STOP will start tracking.
+         *
+         * This also helps when Android recreates a
+         * START_STICKY service with a null intent.
+         */
 
-        if (intent?.action == ACTION_STOP) {
+
+        if (
+            intent?.action ==
+            ACTION_STOP
+        ) {
 
             stopLocationTracking()
 
@@ -109,23 +133,129 @@ class DriverLocationService : Service() {
         }
 
 
-        if (intent?.action == ACTION_START) {
-
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification()
-            )
-
-            startLocationTracking()
-        }
+        /*
+         * Start Foreground Service immediately.
+         */
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification()
+        )
 
 
+        /*
+         * Start GPS tracking.
+         */
+        startLocationTracking()
+
+
+        /*
+         * IMPORTANT:
+         *
+         * Ask Android to recreate this service if
+         * the process is removed.
+         */
         return START_STICKY
+    }
+
+
+    private fun initializeFirebase() {
+
+        try {
+
+            var firebaseApp =
+                FirebaseApp
+                    .getApps(this)
+                    .firstOrNull()
+
+
+            if (firebaseApp == null) {
+
+                val options =
+                    FirebaseOptions.Builder()
+                        .setApiKey(
+                            "AIzaSyBqSICccKKX94x04rjCUHXjW5EJoaI10Bc"
+                        )
+                        .setApplicationId(
+                            "1:900129993912:web:48c98c4d62154d0f39704d"
+                        )
+                        .setProjectId(
+                            "safety-cab-radar"
+                        )
+                        .setDatabaseUrl(
+                            "https://safety-cab-radar-default-rtdb.asia-southeast1.firebasedatabase.app"
+                        )
+                        .setStorageBucket(
+                            "safety-cab-radar.firebasestorage.app"
+                        )
+                        .setGcmSenderId(
+                            "900129993912"
+                        )
+                        .build()
+
+
+                firebaseApp =
+                    FirebaseApp.initializeApp(
+                        this,
+                        options
+                    )
+            }
+
+
+            if (firebaseApp == null) {
+
+                firebaseReady = false
+
+                return
+            }
+
+
+            firebaseAuth =
+                FirebaseAuth.getInstance(
+                    firebaseApp
+                )
+
+
+            firebaseDatabase =
+                FirebaseDatabase.getInstance(
+                    firebaseApp
+                )
+
+
+            /*
+             * Firebase Authentication
+             *
+             * RTDB rules require authenticated user.
+             */
+
+            if (
+                firebaseAuth.currentUser != null
+            ) {
+
+                firebaseReady = true
+
+            } else {
+
+                firebaseAuth
+                    .signInAnonymously()
+                    .addOnCompleteListener {
+
+                        firebaseReady =
+                            it.isSuccessful
+                    }
+            }
+
+        } catch (e: Exception) {
+
+            firebaseReady = false
+        }
     }
 
 
     private fun startLocationTracking() {
 
+        /*
+         * Check GPS permission.
+         */
         if (
             ActivityCompat.checkSelfPermission(
                 this,
@@ -146,12 +276,14 @@ class DriverLocationService : Service() {
             LocationRequest.create().apply {
 
                 /*
-                 * CURRENT TEST MODE
+                 * TEST MODE
                  *
                  * GPS update every 5 seconds.
                  *
-                 * After background testing succeeds,
-                 * we will change this to 15 minutes.
+                 * First verify background tracking.
+                 *
+                 * Later we can change this to
+                 * 15 minutes.
                  */
 
                 interval = 5000
@@ -180,22 +312,19 @@ class DriverLocationService : Service() {
         location: Location
     ) {
 
+        /*
+         * Firebase may still be signing in.
+         */
+        if (!firebaseReady) {
+
+            return
+        }
+
+
         try {
 
-            val firebaseApp =
-                FirebaseApp
-                    .getApps(this)
-                    .firstOrNull()
-
-
-            if (firebaseApp == null) {
-                return
-            }
-
-
             val databaseReference =
-                FirebaseDatabase
-                    .getInstance(firebaseApp)
+                firebaseDatabase
                     .getReference(
                         "liveLocations"
                     )
@@ -245,7 +374,9 @@ class DriverLocationService : Service() {
 
 
             databaseReference
-                .setValue(locationData)
+                .setValue(
+                    locationData
+                )
 
         } catch (e: Exception) {
 
@@ -256,31 +387,48 @@ class DriverLocationService : Service() {
 
     private fun stopLocationTracking() {
 
+        /*
+         * Stop GPS updates.
+         */
         if (
             ::fusedLocationClient
                 .isInitialized
         ) {
 
-            fusedLocationClient
-                .removeLocationUpdates(
-                    locationCallback
-                )
+            try {
+
+                fusedLocationClient
+                    .removeLocationUpdates(
+                        locationCallback
+                    )
+
+            } catch (e: Exception) {
+
+                // Ignore
+            }
         }
 
 
+        /*
+         * Only ACTION_STOP should mark
+         * the driver OFF DUTY.
+         *
+         * We deliberately do NOT write OFF DUTY
+         * from onDestroy().
+         *
+         * This is important because Android can
+         * destroy/recreate a START_STICKY service.
+         */
+
         try {
 
-            val firebaseApp =
-                FirebaseApp
-                    .getApps(this)
-                    .firstOrNull()
-
-
-            if (firebaseApp != null) {
+            if (
+                ::firebaseDatabase
+                    .isInitialized
+            ) {
 
                 val databaseReference =
-                    FirebaseDatabase
-                        .getInstance(firebaseApp)
+                    firebaseDatabase
                         .getReference(
                             "liveLocations"
                         )
@@ -400,7 +548,33 @@ class DriverLocationService : Service() {
 
     override fun onDestroy() {
 
-        stopLocationTracking()
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT mark OFF DUTY here.
+         *
+         * Android may destroy the service temporarily.
+         * START_STICKY should allow it to be recreated.
+         */
+
+        try {
+
+            if (
+                ::fusedLocationClient
+                    .isInitialized
+            ) {
+
+                fusedLocationClient
+                    .removeLocationUpdates(
+                        locationCallback
+                    )
+            }
+
+        } catch (e: Exception) {
+
+            // Ignore
+        }
+
 
         super.onDestroy()
     }
