@@ -35,6 +35,9 @@ class MainActivity : AppCompatActivity() {
 
     private val DRIVER_ID = "DC001"
 
+    private val PREFS_NAME = "SafetyCabDriverPrefs"
+    private val DUTY_KEY = "dutyOn"
+
     private lateinit var btnDuty: Button
     private lateinit var tvDutyStatus: TextView
     private lateinit var tvGpsStatus: TextView
@@ -104,11 +107,132 @@ class MainActivity : AppCompatActivity() {
         btnDuty.setOnClickListener {
 
             if (!dutyOn) {
+
                 startDuty()
+
             } else {
+
                 stopDuty()
             }
         }
+
+
+        // Restore previously saved Duty status
+        restoreDutyState()
+    }
+
+
+    private fun getPreferences() =
+        getSharedPreferences(
+            PREFS_NAME,
+            MODE_PRIVATE
+        )
+
+
+    private fun saveDutyState(
+        enabled: Boolean
+    ) {
+
+        getPreferences()
+            .edit()
+            .putBoolean(
+                DUTY_KEY,
+                enabled
+            )
+            .apply()
+    }
+
+
+    private fun restoreDutyState() {
+
+        val savedDuty =
+            getPreferences()
+                .getBoolean(
+                    DUTY_KEY,
+                    false
+                )
+
+        if (!savedDuty) {
+
+            dutyOn = false
+
+            tvDutyStatus.text =
+                "OFF DUTY"
+
+            btnDuty.text =
+                "START DUTY"
+
+            tvGpsStatus.text =
+                "GPS: Not Started"
+
+            tvTrackingStatus.text =
+                "Tracking: Stopped"
+
+            return
+        }
+
+
+        // Previously ON DUTY
+        dutyOn = true
+
+        tvDutyStatus.text =
+            "ON DUTY"
+
+        btnDuty.text =
+            "STOP DUTY"
+
+        tvGpsStatus.text =
+            "GPS: Starting..."
+
+        tvTrackingStatus.text =
+            "Tracking: Starting..."
+
+
+        // Restart foreground service if necessary
+        if (
+            hasLocationPermission() &&
+            hasBackgroundLocationPermission()
+        ) {
+
+            startDriverLocationService()
+
+            startLocationUpdates()
+
+        } else {
+
+            tvTrackingStatus.text =
+                "Tracking: Background Permission Needed"
+        }
+    }
+
+
+    private fun hasLocationPermission(): Boolean {
+
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+    }
+
+
+    private fun hasBackgroundLocationPermission(): Boolean {
+
+        if (
+            Build.VERSION.SDK_INT <
+            Build.VERSION_CODES.Q
+        ) {
+
+            return true
+        }
+
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
 
@@ -150,6 +274,7 @@ class MainActivity : AppCompatActivity() {
                     )
             }
 
+
             if (firebaseApp == null) {
 
                 tvConnectionStatus.text =
@@ -158,11 +283,16 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
+
             firebaseAuth =
-                FirebaseAuth.getInstance(firebaseApp)
+                FirebaseAuth.getInstance(
+                    firebaseApp
+                )
 
             firebaseDatabase =
-                FirebaseDatabase.getInstance(firebaseApp)
+                FirebaseDatabase.getInstance(
+                    firebaseApp
+                )
 
             tvConnectionStatus.text =
                 "Firebase: Connecting..."
@@ -191,6 +321,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+
         firebaseAuth
             .signInAnonymously()
             .addOnCompleteListener { task ->
@@ -215,13 +346,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDuty() {
 
-        // First check normal GPS permission
-        if (
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        // Check normal GPS permission first
+        if (!hasLocationPermission()) {
 
             ActivityCompat.requestPermissions(
                 this,
@@ -237,86 +363,15 @@ class MainActivity : AppCompatActivity() {
 
 
         // Check Background Location
-        if (!ensureBackgroundLocationPermission()) {
-            return
-        }
-
-
-        dutyOn = true
-
-        tvDutyStatus.text =
-            "ON DUTY"
-
-        btnDuty.text =
-            "STOP DUTY"
-
-        tvGpsStatus.text =
-            "GPS: Starting..."
-
-        tvTrackingStatus.text =
-            "Tracking: Starting..."
-
-
-        // Start Background GPS Foreground Service
-        try {
-
-            val serviceIntent =
-                Intent(
-                    this,
-                    DriverLocationService::class.java
-                )
-
-            ContextCompat.startForegroundService(
-                this,
-                serviceIntent
-            )
-
-        } catch (e: Exception) {
-
-            tvTrackingStatus.text =
-                "Tracking: Service Start Failed"
-        }
-
-
-        // Keep UI GPS active while app is open
-        startLocationUpdates()
-    }
-
-
-    private fun ensureBackgroundLocationPermission(): Boolean {
-
-        // Android 10 and above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-
-            val backgroundPermission =
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                )
+        if (!hasBackgroundLocationPermission()) {
 
             if (
-                backgroundPermission ==
-                PackageManager.PERMISSION_GRANTED
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.R
             ) {
 
-                return true
-            }
-
-
-            /*
-             * Android 11+ does not normally show
-             * "Allow all the time" directly in the
-             * permission popup.
-             *
-             * Open this app's Settings page so the user
-             * can select:
-             *
-             * Location -> Allow all the time
-             */
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-
-                waitingForBackgroundPermission = true
+                waitingForBackgroundPermission =
+                    true
 
                 try {
 
@@ -336,27 +391,76 @@ class MainActivity : AppCompatActivity() {
 
                     tvTrackingStatus.text =
                         "Tracking: Open App Settings"
-
                 }
 
-                return false
+                return
+
+            } else {
+
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    ),
+                    BACKGROUND_LOCATION_PERMISSION_REQUEST
+                )
+
+                return
             }
-
-
-            // Android 10
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ),
-                BACKGROUND_LOCATION_PERMISSION_REQUEST
-            )
-
-            return false
         }
 
 
-        return true
+        // Save ON DUTY permanently
+        dutyOn = true
+
+        saveDutyState(true)
+
+
+        tvDutyStatus.text =
+            "ON DUTY"
+
+        btnDuty.text =
+            "STOP DUTY"
+
+        tvGpsStatus.text =
+            "GPS: Starting..."
+
+        tvTrackingStatus.text =
+            "Tracking: Starting..."
+
+
+        // Start Foreground GPS Service
+        startDriverLocationService()
+
+
+        // Keep UI GPS active while app is open
+        startLocationUpdates()
+    }
+
+
+    private fun startDriverLocationService() {
+
+        try {
+
+            val serviceIntent =
+                Intent(
+                    this,
+                    DriverLocationService::class.java
+                )
+
+            ContextCompat.startForegroundService(
+                this,
+                serviceIntent
+            )
+
+            tvTrackingStatus.text =
+                "Tracking: GPS Active"
+
+        } catch (e: Exception) {
+
+            tvTrackingStatus.text =
+                "Tracking: Service Start Failed"
+        }
     }
 
 
@@ -384,6 +488,7 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+
             return
         }
 
@@ -401,14 +506,18 @@ class MainActivity : AppCompatActivity() {
     ) {
 
         if (!firebaseReady) {
+
             return
         }
+
 
         try {
 
             val databaseReference =
                 firebaseDatabase
-                    .getReference("liveLocations")
+                    .getReference(
+                        "liveLocations"
+                    )
                     .child(DRIVER_ID)
 
 
@@ -445,7 +554,9 @@ class MainActivity : AppCompatActivity() {
 
 
             databaseReference
-                .setValue(locationData)
+                .setValue(
+                    locationData
+                )
                 .addOnSuccessListener {
 
                     tvConnectionStatus.text =
@@ -468,13 +579,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopDuty() {
 
+        // Save OFF DUTY permanently
         dutyOn = false
+
+        saveDutyState(false)
 
 
         // Stop UI GPS updates
-        fusedLocationClient.removeLocationUpdates(
-            locationCallback
-        )
+        try {
+
+            fusedLocationClient
+                .removeLocationUpdates(
+                    locationCallback
+                )
+
+        } catch (e: Exception) {
+            // Ignore
+        }
 
 
         // Stop Background GPS Foreground Service
@@ -486,10 +607,12 @@ class MainActivity : AppCompatActivity() {
                     DriverLocationService::class.java
                 )
 
-            stopService(serviceIntent)
+            stopService(
+                serviceIntent
+            )
 
         } catch (e: Exception) {
-            // Ignore service stop error
+            // Ignore
         }
 
 
@@ -500,7 +623,9 @@ class MainActivity : AppCompatActivity() {
 
                 val databaseReference =
                     firebaseDatabase
-                        .getReference("liveLocations")
+                        .getReference(
+                            "liveLocations"
+                        )
                         .child(DRIVER_ID)
 
 
@@ -521,9 +646,10 @@ class MainActivity : AppCompatActivity() {
                     System.currentTimeMillis()
 
 
-                databaseReference.updateChildren(
-                    updates
-                )
+                databaseReference
+                    .updateChildren(
+                        updates
+                    )
 
             } catch (e: Exception) {
                 // Ignore Firebase stop update error
@@ -558,7 +684,7 @@ class MainActivity : AppCompatActivity() {
         )
 
 
-        // Normal GPS permission result
+        // Normal GPS permission
         if (
             requestCode ==
             LOCATION_PERMISSION_REQUEST
@@ -583,7 +709,7 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Android 10 Background Location result
+        // Android 10 Background Location
         if (
             requestCode ==
             BACKGROUND_LOCATION_PERMISSION_REQUEST
@@ -593,6 +719,7 @@ class MainActivity : AppCompatActivity() {
                 grantResults.isNotEmpty() &&
                 grantResults[0] ==
                 PackageManager.PERMISSION_GRANTED
+
 
             if (granted) {
 
@@ -611,35 +738,20 @@ class MainActivity : AppCompatActivity() {
 
         super.onResume()
 
+
         /*
-         * When user returns from App Settings,
-         * check Background Location again.
+         * User may have gone to App Settings
+         * and selected "Allow all the time".
          */
 
         if (waitingForBackgroundPermission) {
 
-            waitingForBackgroundPermission = false
-
-            val backgroundPermission =
-                if (
-                    Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.Q
-                ) {
-
-                    ContextCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                    )
-
-                } else {
-
-                    PackageManager.PERMISSION_GRANTED
-                }
+            waitingForBackgroundPermission =
+                false
 
 
             if (
-                backgroundPermission ==
-                PackageManager.PERMISSION_GRANTED
+                hasBackgroundLocationPermission()
             ) {
 
                 tvTrackingStatus.text =
@@ -658,19 +770,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
 
-        // IMPORTANT:
-        // Do NOT stop DriverLocationService here.
-        // The service must continue when Activity closes.
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT stop DriverLocationService here.
+         *
+         * The foreground service must continue
+         * when Activity is closed/backgrounded.
+         */
 
         if (
             ::fusedLocationClient.isInitialized &&
             ::locationCallback.isInitialized
         ) {
 
-            fusedLocationClient.removeLocationUpdates(
-                locationCallback
-            )
+            fusedLocationClient
+                .removeLocationUpdates(
+                    locationCallback
+                )
         }
+
 
         super.onDestroy()
     }
