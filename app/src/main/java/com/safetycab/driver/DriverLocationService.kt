@@ -286,7 +286,7 @@ class DriverLocationService : Service() {
                  * 15 minutes.
                  */
 
-                interval = 5000
+                interval = 600000
 
                 fastestInterval = 3000
 
