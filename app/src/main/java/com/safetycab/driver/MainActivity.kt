@@ -446,7 +446,15 @@ class MainActivity : AppCompatActivity() {
                 Intent(
                     this,
                     DriverLocationService::class.java
-                )
+                ).apply {
+
+                    // IMPORTANT:
+                    // Explicitly tell the foreground
+                    // service to START GPS tracking.
+                    action =
+                        DriverLocationService.ACTION_START
+                }
+
 
             ContextCompat.startForegroundService(
                 this,
@@ -469,6 +477,7 @@ class MainActivity : AppCompatActivity() {
         val locationRequest =
             LocationRequest.create().apply {
 
+                // UI GPS while app is open
                 interval = 5000
 
                 fastestInterval = 3000
@@ -605,11 +614,13 @@ class MainActivity : AppCompatActivity() {
                 Intent(
                     this,
                     DriverLocationService::class.java
-                )
+                ).apply {
 
-            stopService(
-                serviceIntent
-            )
+                    action =
+                        DriverLocationService.ACTION_STOP
+                }
+
+            startService(serviceIntent)
 
         } catch (e: Exception) {
             // Ignore
