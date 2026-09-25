@@ -27,13 +27,24 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
+import java.util.HashMap
+
 
 class MainActivity : AppCompatActivity() {
 
     private val LOCATION_PERMISSION_REQUEST = 1001
     private val BACKGROUND_LOCATION_PERMISSION_REQUEST = 1002
 
-    private val DRIVER_ID = "DC001"
+    /*
+     * IMPORTANT:
+     *
+     * Driver ID is NO LONGER hard-coded.
+     *
+     * It will be loaded from:
+     *
+     * driverDevices/<Firebase Auth UID>/driverId
+     */
+    private var driverId: String? = null
 
     private val PREFS_NAME = "SafetyCabDriverPrefs"
     private val DUTY_KEY = "dutyOn"
@@ -53,6 +64,7 @@ class MainActivity : AppCompatActivity() {
 
     private var dutyOn = false
     private var firebaseReady = false
+    private var driverReady = false
     private var waitingForBackgroundPermission = false
 
 
@@ -68,10 +80,14 @@ class MainActivity : AppCompatActivity() {
         tvLastLocation = findViewById(R.id.tvLastLocation)
         tvConnectionStatus = findViewById(R.id.tvConnectionStatus)
 
+        /*
+         * Disable Duty until Firebase verifies
+         * that this device belongs to a registered driver.
+         */
+        btnDuty.isEnabled = false
+
         fusedLocationClient =
             LocationServices.getFusedLocationProviderClient(this)
-
-        initializeFirebase()
 
         locationCallback = object : LocationCallback() {
 
@@ -103,8 +119,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        initializeFirebase()
 
         btnDuty.setOnClickListener {
+
+            if (!driverReady) {
+
+                tvTrackingStatus.text =
+                    "Tracking: Driver registration not verified"
+
+                return@setOnClickListener
+            }
 
             if (!dutyOn) {
 
@@ -116,8 +141,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-        // Restore previously saved Duty status
+        /*
+         * Restore Duty state only after the device
+         * Driver ID has been verified by Firebase.
+         */
         restoreDutyState()
     }
 
@@ -172,7 +199,33 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Previously ON DUTY
+        /*
+         * If Firebase has not verified the Driver ID yet,
+         * do not start GPS.
+         */
+        if (!driverReady) {
+
+            dutyOn = false
+
+            tvDutyStatus.text =
+                "DRIVER VERIFYING..."
+
+            btnDuty.text =
+                "START DUTY"
+
+            tvGpsStatus.text =
+                "GPS: Waiting"
+
+            tvTrackingStatus.text =
+                "Tracking: Driver verification pending"
+
+            return
+        }
+
+
+        /*
+         * Previously ON DUTY
+         */
         dutyOn = true
 
         tvDutyStatus.text =
@@ -188,7 +241,6 @@ class MainActivity : AppCompatActivity() {
             "Tracking: Starting..."
 
 
-        // Restart foreground service if necessary
         if (
             hasLocationPermission() &&
             hasBackgroundLocationPermission()
@@ -277,6 +329,8 @@ class MainActivity : AppCompatActivity() {
 
             if (firebaseApp == null) {
 
+                firebaseReady = false
+
                 tvConnectionStatus.text =
                     "Firebase: Initialization Failed"
 
@@ -302,6 +356,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
 
             firebaseReady = false
+            driverReady = false
 
             tvConnectionStatus.text =
                 "Firebase: Error"
@@ -318,6 +373,8 @@ class MainActivity : AppCompatActivity() {
             tvConnectionStatus.text =
                 "Firebase: Connected"
 
+            loadDriverId()
+
             return
         }
 
@@ -333,20 +390,146 @@ class MainActivity : AppCompatActivity() {
                     tvConnectionStatus.text =
                         "Firebase: Connected"
 
+                    loadDriverId()
+
                 } else {
 
                     firebaseReady = false
+                    driverReady = false
 
                     tvConnectionStatus.text =
                         "Firebase: Login Failed"
+
+                    btnDuty.isEnabled = false
                 }
+            }
+    }
+
+
+    /*
+     * Load the Driver ID assigned to this Firebase
+     * Anonymous Auth UID.
+     *
+     * Firebase path:
+     *
+     * driverDevices/<UID>/driverId
+     */
+    private fun loadDriverId() {
+
+        val user =
+            firebaseAuth.currentUser
+
+        if (user == null) {
+
+            driverReady = false
+
+            btnDuty.isEnabled = false
+
+            tvTrackingStatus.text =
+                "Tracking: Firebase identity unavailable"
+
+            return
+        }
+
+
+        val uid =
+            user.uid
+
+
+        firebaseDatabase
+            .getReference("driverDevices")
+            .child(uid)
+            .child("driverId")
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                val value =
+                    snapshot.getValue(String::class.java)
+
+
+                if (
+                    value != null &&
+                    value.trim().isNotEmpty()
+                ) {
+
+                    driverId =
+                        value.trim().uppercase()
+
+                    driverReady = true
+
+                    btnDuty.isEnabled = true
+
+                    tvConnectionStatus.text =
+                        "Firebase: Connected"
+
+                    tvTrackingStatus.text =
+                        "Driver ID: $driverId"
+
+                    /*
+                     * If Duty was already ON before
+                     * the app was closed, restore it now.
+                     */
+                    val savedDuty =
+                        getPreferences()
+                            .getBoolean(
+                                DUTY_KEY,
+                                false
+                            )
+
+                    if (savedDuty) {
+
+                        restoreDutyState()
+                    }
+
+                } else {
+
+                    driverId = null
+                    driverReady = false
+
+                    btnDuty.isEnabled = false
+
+                    tvDutyStatus.text =
+                        "DRIVER NOT REGISTERED"
+
+                    btnDuty.text =
+                        "START DUTY"
+
+                    tvGpsStatus.text =
+                        "GPS: Not Started"
+
+                    tvTrackingStatus.text =
+                        "Tracking: Device not registered"
+
+                    tvLastLocation.text =
+                        "Driver registration required"
+
+                }
+
+            }
+            .addOnFailureListener {
+
+                driverId = null
+                driverReady = false
+
+                btnDuty.isEnabled = false
+
+                tvTrackingStatus.text =
+                    "Tracking: Driver verification failed"
             }
     }
 
 
     private fun startDuty() {
 
-        // Check normal GPS permission first
+        if (!driverReady || driverId.isNullOrEmpty()) {
+
+            tvTrackingStatus.text =
+                "Tracking: Driver not verified"
+
+            return
+        }
+
+
         if (!hasLocationPermission()) {
 
             ActivityCompat.requestPermissions(
@@ -362,7 +545,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Check Background Location
         if (!hasBackgroundLocationPermission()) {
 
             if (
@@ -410,7 +592,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Save ON DUTY permanently
         dutyOn = true
 
         saveDutyState(true)
@@ -429,11 +610,8 @@ class MainActivity : AppCompatActivity() {
             "Tracking: Starting..."
 
 
-        // Start Foreground GPS Service
         startDriverLocationService()
 
-
-        // Keep UI GPS active while app is open
         startLocationUpdates()
     }
 
@@ -448,9 +626,6 @@ class MainActivity : AppCompatActivity() {
                     DriverLocationService::class.java
                 ).apply {
 
-                    // IMPORTANT:
-                    // Explicitly tell the foreground
-                    // service to START GPS tracking.
                     action =
                         DriverLocationService.ACTION_START
                 }
@@ -477,7 +652,6 @@ class MainActivity : AppCompatActivity() {
         val locationRequest =
             LocationRequest.create().apply {
 
-                // UI GPS while app is open
                 interval = 5000
 
                 fastestInterval = 3000
@@ -515,7 +689,20 @@ class MainActivity : AppCompatActivity() {
     ) {
 
         if (!firebaseReady) {
+            return
+        }
 
+        if (!driverReady) {
+            return
+        }
+
+        val currentDriverId =
+            driverId
+
+        if (
+            currentDriverId == null ||
+            currentDriverId.isEmpty()
+        ) {
             return
         }
 
@@ -527,7 +714,9 @@ class MainActivity : AppCompatActivity() {
                     .getReference(
                         "liveLocations"
                     )
-                    .child(DRIVER_ID)
+                    .child(
+                        currentDriverId
+                    )
 
 
             val locationData =
@@ -535,7 +724,7 @@ class MainActivity : AppCompatActivity() {
 
 
             locationData["driverId"] =
-                DRIVER_ID
+                currentDriverId
 
             locationData["lat"] =
                 location.latitude
@@ -588,13 +777,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopDuty() {
 
-        // Save OFF DUTY permanently
         dutyOn = false
 
         saveDutyState(false)
 
 
-        // Stop UI GPS updates
         try {
 
             fusedLocationClient
@@ -607,7 +794,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Stop Background GPS Foreground Service
         try {
 
             val serviceIntent =
@@ -627,8 +813,11 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Update Firebase OFF DUTY
-        if (firebaseReady) {
+        if (
+            firebaseReady &&
+            driverReady &&
+            !driverId.isNullOrEmpty()
+        ) {
 
             try {
 
@@ -637,7 +826,9 @@ class MainActivity : AppCompatActivity() {
                         .getReference(
                             "liveLocations"
                         )
-                        .child(DRIVER_ID)
+                        .child(
+                            driverId!!
+                        )
 
 
                 val updates =
@@ -645,7 +836,7 @@ class MainActivity : AppCompatActivity() {
 
 
                 updates["driverId"] =
-                    DRIVER_ID
+                    driverId!!
 
                 updates["online"] =
                     false
@@ -695,7 +886,6 @@ class MainActivity : AppCompatActivity() {
         )
 
 
-        // Normal GPS permission
         if (
             requestCode ==
             LOCATION_PERMISSION_REQUEST
@@ -720,7 +910,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        // Android 10 Background Location
         if (
             requestCode ==
             BACKGROUND_LOCATION_PERMISSION_REQUEST
@@ -749,11 +938,6 @@ class MainActivity : AppCompatActivity() {
 
         super.onResume()
 
-
-        /*
-         * User may have gone to App Settings
-         * and selected "Allow all the time".
-         */
 
         if (waitingForBackgroundPermission) {
 
@@ -786,8 +970,8 @@ class MainActivity : AppCompatActivity() {
          *
          * Do NOT stop DriverLocationService here.
          *
-         * The foreground service must continue
-         * when Activity is closed/backgrounded.
+         * Foreground service must continue when
+         * Activity is closed/backgrounded.
          */
 
         if (
