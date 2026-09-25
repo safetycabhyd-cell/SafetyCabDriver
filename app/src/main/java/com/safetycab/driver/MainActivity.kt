@@ -44,6 +44,13 @@ class MainActivity : AppCompatActivity() {
      */
     private var driverId: String? = null
 
+    /*
+     * Firebase Anonymous UID of this device.
+     *
+     * This is the device pairing identity.
+     */
+    private var firebaseUid: String? = null
+
     private val PREFS_NAME = "SafetyCabDriverPrefs"
     private val DUTY_KEY = "dutyOn"
 
@@ -54,11 +61,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLastLocation: TextView
     private lateinit var tvConnectionStatus: TextView
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var locationCallback: LocationCallback
+    private lateinit var fusedLocationClient:
+            FusedLocationProviderClient
 
-    private lateinit var firebaseAuth: FirebaseAuth
-    private lateinit var firebaseDatabase: FirebaseDatabase
+    private lateinit var locationCallback:
+            LocationCallback
+
+    private lateinit var firebaseAuth:
+            FirebaseAuth
+
+    private lateinit var firebaseDatabase:
+            FirebaseDatabase
 
     private var dutyOn = false
     private var firebaseReady = false
@@ -66,57 +79,106 @@ class MainActivity : AppCompatActivity() {
     private var waitingForBackgroundPermission = false
 
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_main)
+        setContentView(
+            R.layout.activity_main
+        )
 
-        btnDuty = findViewById(R.id.btnDuty)
-        tvDutyStatus = findViewById(R.id.tvDutyStatus)
-        tvGpsStatus = findViewById(R.id.tvGpsStatus)
-        tvTrackingStatus = findViewById(R.id.tvTrackingStatus)
-        tvLastLocation = findViewById(R.id.tvLastLocation)
-        tvConnectionStatus = findViewById(R.id.tvConnectionStatus)
+
+        btnDuty =
+            findViewById(
+                R.id.btnDuty
+            )
+
+        tvDutyStatus =
+            findViewById(
+                R.id.tvDutyStatus
+            )
+
+        tvGpsStatus =
+            findViewById(
+                R.id.tvGpsStatus
+            )
+
+        tvTrackingStatus =
+            findViewById(
+                R.id.tvTrackingStatus
+            )
+
+        tvLastLocation =
+            findViewById(
+                R.id.tvLastLocation
+            )
+
+        tvConnectionStatus =
+            findViewById(
+                R.id.tvConnectionStatus
+            )
+
 
         /*
-         * Driver must be verified before Duty can be used.
+         * Driver cannot start Duty until
+         * Firebase verifies this device.
          */
         btnDuty.isEnabled = false
 
+
         fusedLocationClient =
-            LocationServices.getFusedLocationProviderClient(this)
+            LocationServices
+                .getFusedLocationProviderClient(
+                    this
+                )
 
-        locationCallback = object : LocationCallback() {
 
-            override fun onLocationResult(
-                locationResult: LocationResult
-            ) {
+        locationCallback =
+            object : LocationCallback() {
 
-                val location: Location? =
-                    locationResult.lastLocation
+                override fun onLocationResult(
+                    locationResult: LocationResult
+                ) {
 
-                if (location != null) {
+                    val location: Location? =
+                        locationResult.lastLocation
 
-                    val latitude = location.latitude
-                    val longitude = location.longitude
 
-                    tvGpsStatus.text =
-                        "GPS: Active"
+                    if (location != null) {
 
-                    tvLastLocation.text =
-                        "Latitude: $latitude\n" +
-                        "Longitude: $longitude\n" +
-                        "Last Update: Just now"
+                        val latitude =
+                            location.latitude
 
-                    tvTrackingStatus.text =
-                        "Tracking: GPS Active"
+                        val longitude =
+                            location.longitude
 
-                    sendLocationToFirebase(location)
+
+                        tvGpsStatus.text =
+                            "GPS: Active"
+
+
+                        tvLastLocation.text =
+                            "Latitude: $latitude\n" +
+                            "Longitude: $longitude\n" +
+                            "Last Update: Just now"
+
+
+                        tvTrackingStatus.text =
+                            "Tracking: GPS Active"
+
+
+                        sendLocationToFirebase(
+                            location
+                        )
+                    }
                 }
             }
-        }
+
 
         initializeFirebase()
+
 
         btnDuty.setOnClickListener {
 
@@ -128,6 +190,7 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+
             if (!dutyOn) {
 
                 startDuty()
@@ -137,6 +200,7 @@ class MainActivity : AppCompatActivity() {
                 stopDuty()
             }
         }
+
 
         restoreDutyState()
     }
@@ -171,6 +235,7 @@ class MainActivity : AppCompatActivity() {
                     DUTY_KEY,
                     false
                 )
+
 
         if (!savedDuty) {
 
@@ -250,6 +315,7 @@ class MainActivity : AppCompatActivity() {
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED ||
+
                 ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.ACCESS_COARSE_LOCATION
@@ -267,6 +333,7 @@ class MainActivity : AppCompatActivity() {
             return true
         }
 
+
         return ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_BACKGROUND_LOCATION
@@ -279,7 +346,10 @@ class MainActivity : AppCompatActivity() {
         try {
 
             var firebaseApp =
-                FirebaseApp.getApps(this).firstOrNull()
+                FirebaseApp
+                    .getApps(this)
+                    .firstOrNull()
+
 
             if (firebaseApp == null) {
 
@@ -305,6 +375,7 @@ class MainActivity : AppCompatActivity() {
                         )
                         .build()
 
+
                 firebaseApp =
                     FirebaseApp.initializeApp(
                         this,
@@ -329,13 +400,16 @@ class MainActivity : AppCompatActivity() {
                     firebaseApp
                 )
 
+
             firebaseDatabase =
                 FirebaseDatabase.getInstance(
                     firebaseApp
                 )
 
+
             tvConnectionStatus.text =
                 "Firebase: Connecting..."
+
 
             signInFirebase()
 
@@ -352,12 +426,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun signInFirebase() {
 
-        if (firebaseAuth.currentUser != null) {
+        if (
+            firebaseAuth.currentUser != null
+        ) {
 
             firebaseReady = true
 
+            firebaseUid =
+                firebaseAuth
+                    .currentUser
+                    ?.uid
+
+
+            showPairingId()
+
+
             tvConnectionStatus.text =
                 "Firebase: Connected"
+
 
             loadDriverId()
 
@@ -373,8 +459,18 @@ class MainActivity : AppCompatActivity() {
 
                     firebaseReady = true
 
+                    firebaseUid =
+                        firebaseAuth
+                            .currentUser
+                            ?.uid
+
+
+                    showPairingId()
+
+
                     tvConnectionStatus.text =
                         "Firebase: Connected"
+
 
                     loadDriverId()
 
@@ -392,10 +488,33 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    /*
+     * Show Firebase UID on the existing status area.
+     *
+     * No XML/layout change is required.
+     */
+    private fun showPairingId() {
+
+        val uid =
+            firebaseUid
+
+
+        if (
+            uid != null &&
+            uid.isNotEmpty()
+        ) {
+
+            tvTrackingStatus.text =
+                "Pairing ID:\n$uid"
+        }
+    }
+
+
     private fun loadDriverId() {
 
         val user =
             firebaseAuth.currentUser
+
 
         if (user == null) {
 
@@ -414,15 +533,29 @@ class MainActivity : AppCompatActivity() {
             user.uid
 
 
+        firebaseUid =
+            uid
+
+
+        /*
+         * Show this device's pairing ID.
+         */
+        showPairingId()
+
+
         firebaseDatabase
-            .getReference("driverDevices")
+            .getReference(
+                "driverDevices"
+            )
             .child(uid)
             .child("driverId")
             .get()
             .addOnSuccessListener { snapshot ->
 
                 val value =
-                    snapshot.getValue(String::class.java)
+                    snapshot.getValue(
+                        String::class.java
+                    )
 
 
                 if (
@@ -431,24 +564,26 @@ class MainActivity : AppCompatActivity() {
                 ) {
 
                     /*
-                     * IMPORTANT:
-                     *
-                     * toUpperCase() is used instead of
-                     * uppercase() for compatibility with
-                     * the current Kotlin build environment.
+                     * Compatible with current Kotlin setup.
                      */
                     driverId =
-                        value.trim().toUpperCase()
+                        value
+                            .trim()
+                            .toUpperCase()
+
 
                     driverReady = true
 
                     btnDuty.isEnabled = true
 
+
                     tvConnectionStatus.text =
                         "Firebase: Connected"
 
+
                     tvTrackingStatus.text =
-                        "Driver ID: $driverId"
+                        "Driver ID: $driverId\n" +
+                        "Pairing ID:\n$uid"
 
 
                     val savedDuty =
@@ -457,6 +592,7 @@ class MainActivity : AppCompatActivity() {
                                 DUTY_KEY,
                                 false
                             )
+
 
                     if (savedDuty) {
 
@@ -470,20 +606,26 @@ class MainActivity : AppCompatActivity() {
 
                     btnDuty.isEnabled = false
 
+
                     tvDutyStatus.text =
                         "DRIVER NOT REGISTERED"
+
 
                     btnDuty.text =
                         "START DUTY"
 
+
                     tvGpsStatus.text =
                         "GPS: Not Started"
 
+
                     tvTrackingStatus.text =
-                        "Tracking: Device not registered"
+                        "Pairing ID:\n$uid\n\n" +
+                        "Driver registration required"
+
 
                     tvLastLocation.text =
-                        "Driver registration required"
+                        "Device not registered"
                 }
 
             }
@@ -494,8 +636,10 @@ class MainActivity : AppCompatActivity() {
 
                 btnDuty.isEnabled = false
 
+
                 tvTrackingStatus.text =
-                    "Tracking: Driver verification failed"
+                    "Pairing ID:\n$uid\n\n" +
+                    "Driver verification failed"
             }
     }
 
@@ -539,6 +683,7 @@ class MainActivity : AppCompatActivity() {
                 waitingForBackgroundPermission =
                     true
 
+
                 try {
 
                     val intent =
@@ -546,10 +691,12 @@ class MainActivity : AppCompatActivity() {
                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                         )
 
+
                     intent.data =
                         Uri.parse(
                             "package:$packageName"
                         )
+
 
                     startActivity(intent)
 
@@ -558,6 +705,7 @@ class MainActivity : AppCompatActivity() {
                     tvTrackingStatus.text =
                         "Tracking: Open App Settings"
                 }
+
 
                 return
 
@@ -580,6 +728,7 @@ class MainActivity : AppCompatActivity() {
 
         saveDutyState(true)
 
+
         tvDutyStatus.text =
             "ON DUTY"
 
@@ -590,6 +739,7 @@ class MainActivity : AppCompatActivity() {
             "GPS: Starting..."
 
         tvTrackingStatus.text =
+            "Driver ID: $driverId\n" +
             "Tracking: Starting..."
 
 
@@ -619,7 +769,9 @@ class MainActivity : AppCompatActivity() {
                 serviceIntent
             )
 
+
             tvTrackingStatus.text =
+                "Driver ID: $driverId\n" +
                 "Tracking: GPS Active"
 
         } catch (e: Exception) {
@@ -640,7 +792,8 @@ class MainActivity : AppCompatActivity() {
                 fastestInterval = 3000
 
                 priority =
-                    LocationRequest.PRIORITY_HIGH_ACCURACY
+                    LocationRequest
+                        .PRIORITY_HIGH_ACCURACY
             }
 
 
@@ -649,6 +802,7 @@ class MainActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED &&
+
             ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
@@ -659,11 +813,12 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        fusedLocationClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            Looper.getMainLooper()
-        )
+        fusedLocationClient
+            .requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
     }
 
 
@@ -674,6 +829,7 @@ class MainActivity : AppCompatActivity() {
         if (!firebaseReady) {
             return
         }
+
 
         if (!driverReady) {
             return
@@ -712,26 +868,34 @@ class MainActivity : AppCompatActivity() {
             locationData["driverId"] =
                 currentDriverId
 
+
             locationData["lat"] =
                 location.latitude
+
 
             locationData["lng"] =
                 location.longitude
 
+
             locationData["online"] =
                 true
+
 
             locationData["duty"] =
                 dutyOn
 
+
             locationData["accuracy"] =
                 location.accuracy.toDouble()
+
 
             locationData["speed"] =
                 location.speed.toDouble()
 
+
             locationData["heading"] =
                 location.bearing.toDouble()
+
 
             locationData["updatedAt"] =
                 System.currentTimeMillis()
@@ -792,7 +956,10 @@ class MainActivity : AppCompatActivity() {
                         DriverLocationService.ACTION_STOP
                 }
 
-            startService(serviceIntent)
+
+            startService(
+                serviceIntent
+            )
 
         } catch (e: Exception) {
             // Ignore
@@ -824,11 +991,14 @@ class MainActivity : AppCompatActivity() {
                 updates["driverId"] =
                     driverId!!
 
+
                 updates["online"] =
                     false
 
+
                 updates["duty"] =
                     false
+
 
                 updates["updatedAt"] =
                     System.currentTimeMillis()
@@ -855,6 +1025,7 @@ class MainActivity : AppCompatActivity() {
             "GPS: Not Started"
 
         tvTrackingStatus.text =
+            "Driver ID: $driverId\n" +
             "Tracking: Stopped"
     }
 
@@ -954,8 +1125,7 @@ class MainActivity : AppCompatActivity() {
         /*
          * Do NOT stop DriverLocationService here.
          *
-         * Foreground service must continue when
-         * Activity is closed/backgrounded.
+         * Foreground service continues independently.
          */
 
         if (
