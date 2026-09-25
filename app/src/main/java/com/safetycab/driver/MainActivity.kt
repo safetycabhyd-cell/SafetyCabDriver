@@ -36,9 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val BACKGROUND_LOCATION_PERMISSION_REQUEST = 1002
 
     /*
-     * IMPORTANT:
-     *
-     * Driver ID is NO LONGER hard-coded.
+     * Driver ID is NOT hard-coded.
      *
      * It will be loaded from:
      *
@@ -81,8 +79,7 @@ class MainActivity : AppCompatActivity() {
         tvConnectionStatus = findViewById(R.id.tvConnectionStatus)
 
         /*
-         * Disable Duty until Firebase verifies
-         * that this device belongs to a registered driver.
+         * Driver must be verified before Duty can be used.
          */
         btnDuty.isEnabled = false
 
@@ -141,10 +138,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        /*
-         * Restore Duty state only after the device
-         * Driver ID has been verified by Firebase.
-         */
         restoreDutyState()
     }
 
@@ -199,10 +192,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        /*
-         * If Firebase has not verified the Driver ID yet,
-         * do not start GPS.
-         */
         if (!driverReady) {
 
             dutyOn = false
@@ -223,9 +212,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        /*
-         * Previously ON DUTY
-         */
         dutyOn = true
 
         tvDutyStatus.text =
@@ -406,14 +392,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /*
-     * Load the Driver ID assigned to this Firebase
-     * Anonymous Auth UID.
-     *
-     * Firebase path:
-     *
-     * driverDevices/<UID>/driverId
-     */
     private fun loadDriverId() {
 
         val user =
@@ -452,8 +430,15 @@ class MainActivity : AppCompatActivity() {
                     value.trim().isNotEmpty()
                 ) {
 
+                    /*
+                     * IMPORTANT:
+                     *
+                     * toUpperCase() is used instead of
+                     * uppercase() for compatibility with
+                     * the current Kotlin build environment.
+                     */
                     driverId =
-                        value.trim().uppercase()
+                        value.trim().toUpperCase()
 
                     driverReady = true
 
@@ -465,10 +450,7 @@ class MainActivity : AppCompatActivity() {
                     tvTrackingStatus.text =
                         "Driver ID: $driverId"
 
-                    /*
-                     * If Duty was already ON before
-                     * the app was closed, restore it now.
-                     */
+
                     val savedDuty =
                         getPreferences()
                             .getBoolean(
@@ -502,7 +484,6 @@ class MainActivity : AppCompatActivity() {
 
                     tvLastLocation.text =
                         "Driver registration required"
-
                 }
 
             }
@@ -521,7 +502,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDuty() {
 
-        if (!driverReady || driverId.isNullOrEmpty()) {
+        if (
+            !driverReady ||
+            driverId.isNullOrEmpty()
+        ) {
 
             tvTrackingStatus.text =
                 "Tracking: Driver not verified"
@@ -595,7 +579,6 @@ class MainActivity : AppCompatActivity() {
         dutyOn = true
 
         saveDutyState(true)
-
 
         tvDutyStatus.text =
             "ON DUTY"
@@ -696,13 +679,16 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+
         val currentDriverId =
             driverId
+
 
         if (
             currentDriverId == null ||
             currentDriverId.isEmpty()
         ) {
+
             return
         }
 
@@ -966,8 +952,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
 
         /*
-         * IMPORTANT:
-         *
          * Do NOT stop DriverLocationService here.
          *
          * Foreground service must continue when
