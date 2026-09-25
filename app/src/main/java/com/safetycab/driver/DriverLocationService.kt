@@ -44,9 +44,6 @@ class DriverLocationService : Service() {
 
         private const val NOTIFICATION_ID =
             1001
-
-        private const val DRIVER_ID =
-            "DC001"
     }
 
 
@@ -63,6 +60,17 @@ class DriverLocationService : Service() {
             FirebaseDatabase
 
     private var firebaseReady = false
+
+    /*
+     * Driver ID is NOT hard-coded.
+     *
+     * It will be loaded from:
+     *
+     * driverDevices/<Firebase Auth UID>/driverId
+     */
+    private var driverId: String? = null
+
+    private var trackingStarted = false
 
 
     override fun onCreate() {
@@ -107,17 +115,8 @@ class DriverLocationService : Service() {
     ): Int {
 
         /*
-         * IMPORTANT:
-         *
-         * MainActivity may start the service without
-         * an ACTION. Therefore any start command that
-         * is NOT ACTION_STOP will start tracking.
-         *
-         * This also helps when Android recreates a
-         * START_STICKY service with a null intent.
+         * ACTION_STOP completely stops GPS.
          */
-
-
         if (
             intent?.action ==
             ACTION_STOP
@@ -134,7 +133,7 @@ class DriverLocationService : Service() {
 
 
         /*
-         * Start Foreground Service immediately.
+         * Start foreground service immediately.
          */
         startForeground(
             NOTIFICATION_ID,
@@ -143,16 +142,14 @@ class DriverLocationService : Service() {
 
 
         /*
-         * Start GPS tracking.
+         * Firebase authentication and Driver ID
+         * verification happen automatically.
          */
-        startLocationTracking()
+        startTrackingWhenDriverReady()
 
 
         /*
-         * IMPORTANT:
-         *
-         * Ask Android to recreate this service if
-         * the process is removed.
+         * Keep service alive.
          */
         return START_STICKY
     }
@@ -222,25 +219,35 @@ class DriverLocationService : Service() {
 
 
             /*
-             * Firebase Authentication
-             *
-             * RTDB rules require authenticated user.
+             * Existing Firebase identity.
              */
-
             if (
                 firebaseAuth.currentUser != null
             ) {
 
                 firebaseReady = true
 
+                loadDriverId()
+
             } else {
 
+                /*
+                 * Create Firebase Anonymous identity.
+                 */
                 firebaseAuth
                     .signInAnonymously()
-                    .addOnCompleteListener {
+                    .addOnCompleteListener { task ->
 
-                        firebaseReady =
-                            it.isSuccessful
+                        if (task.isSuccessful) {
+
+                            firebaseReady = true
+
+                            loadDriverId()
+
+                        } else {
+
+                            firebaseReady = false
+                        }
                     }
             }
 
@@ -251,7 +258,124 @@ class DriverLocationService : Service() {
     }
 
 
+    private fun loadDriverId() {
+
+        if (!firebaseReady) {
+            return
+        }
+
+
+        val user =
+            firebaseAuth.currentUser
+
+
+        if (user == null) {
+
+            driverId = null
+
+            return
+        }
+
+
+        val uid =
+            user.uid
+
+
+        /*
+         * Read:
+         *
+         * driverDevices/<UID>/driverId
+         */
+        firebaseDatabase
+            .getReference(
+                "driverDevices"
+            )
+            .child(uid)
+            .child("driverId")
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                val value =
+                    snapshot.getValue(
+                        String::class.java
+                    )
+
+
+                if (
+                    value != null &&
+                    value.trim().isNotEmpty()
+                ) {
+
+                    /*
+                     * Use toUpperCase() for compatibility
+                     * with the current Kotlin environment.
+                     */
+                    driverId =
+                        value
+                            .trim()
+                            .toUpperCase()
+
+
+                    /*
+                     * Driver is registered.
+                     * GPS can now start.
+                     */
+                    startLocationTracking()
+
+                } else {
+
+                    /*
+                     * Device is NOT registered.
+                     * GPS will NOT start.
+                     */
+                    driverId = null
+
+                    trackingStarted = false
+                }
+
+            }
+            .addOnFailureListener {
+
+                driverId = null
+
+                trackingStarted = false
+            }
+    }
+
+
+    private fun startTrackingWhenDriverReady() {
+
+        if (
+            firebaseReady &&
+            !driverId.isNullOrEmpty()
+        ) {
+
+            startLocationTracking()
+        }
+    }
+
+
     private fun startLocationTracking() {
+
+        /*
+         * Prevent duplicate GPS callbacks.
+         */
+        if (trackingStarted) {
+            return
+        }
+
+
+        /*
+         * Driver ID must be verified first.
+         */
+        if (
+            driverId == null ||
+            driverId!!.isEmpty()
+        ) {
+
+            return
+        }
+
 
         /*
          * Check GPS permission.
@@ -276,16 +400,9 @@ class DriverLocationService : Service() {
             LocationRequest.create().apply {
 
                 /*
-                 * TEST MODE
-                 *
-                 * GPS update every 5 seconds.
-                 *
-                 * First verify background tracking.
-                 *
-                 * Later we can change this to
-                 * 15 minutes.
+                 * Background GPS interval:
+                 * 10 minutes.
                  */
-
                 interval = 600000
 
                 fastestInterval = 3000
@@ -305,6 +422,9 @@ class DriverLocationService : Service() {
 
                 Looper.getMainLooper()
             )
+
+
+        trackingStarted = true
     }
 
 
@@ -313,9 +433,24 @@ class DriverLocationService : Service() {
     ) {
 
         /*
-         * Firebase may still be signing in.
+         * Firebase authentication must be ready.
          */
         if (!firebaseReady) {
+            return
+        }
+
+
+        /*
+         * Only verified Driver ID can send location.
+         */
+        val currentDriverId =
+            driverId
+
+
+        if (
+            currentDriverId == null ||
+            currentDriverId.isEmpty()
+        ) {
 
             return
         }
@@ -329,7 +464,7 @@ class DriverLocationService : Service() {
                         "liveLocations"
                     )
                     .child(
-                        DRIVER_ID
+                        currentDriverId
                     )
 
 
@@ -338,7 +473,7 @@ class DriverLocationService : Service() {
 
 
             locationData["driverId"] =
-                DRIVER_ID
+                currentDriverId
 
 
             locationData["lat"] =
@@ -409,22 +544,23 @@ class DriverLocationService : Service() {
         }
 
 
-        /*
-         * Only ACTION_STOP should mark
-         * the driver OFF DUTY.
-         *
-         * We deliberately do NOT write OFF DUTY
-         * from onDestroy().
-         *
-         * This is important because Android can
-         * destroy/recreate a START_STICKY service.
-         */
+        trackingStarted = false
 
+
+        /*
+         * Mark the verified driver OFF DUTY.
+         */
         try {
 
+            val currentDriverId =
+                driverId
+
+
             if (
-                ::firebaseDatabase
-                    .isInitialized
+                ::firebaseDatabase.isInitialized &&
+                firebaseReady &&
+                currentDriverId != null &&
+                currentDriverId.isNotEmpty()
             ) {
 
                 val databaseReference =
@@ -433,7 +569,7 @@ class DriverLocationService : Service() {
                             "liveLocations"
                         )
                         .child(
-                            DRIVER_ID
+                            currentDriverId
                         )
 
 
@@ -442,7 +578,7 @@ class DriverLocationService : Service() {
 
 
                 updates["driverId"] =
-                    DRIVER_ID
+                    currentDriverId
 
 
                 updates["online"] =
@@ -549,12 +685,10 @@ class DriverLocationService : Service() {
     override fun onDestroy() {
 
         /*
-         * IMPORTANT:
-         *
          * Do NOT mark OFF DUTY here.
          *
-         * Android may destroy the service temporarily.
-         * START_STICKY should allow it to be recreated.
+         * Android may temporarily destroy/recreate
+         * a START_STICKY foreground service.
          */
 
         try {
@@ -575,6 +709,8 @@ class DriverLocationService : Service() {
             // Ignore
         }
 
+
+        trackingStarted = false
 
         super.onDestroy()
     }
