@@ -3,15 +3,23 @@ package com.safetycab.driver
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.location.Location
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,6 +34,9 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
 
 import java.util.HashMap
 
@@ -77,6 +88,13 @@ class MainActivity : AppCompatActivity() {
     private var firebaseReady = false
     private var driverReady = false
     private var waitingForBackgroundPermission = false
+
+    /*
+     * QR button is created in code.
+     *
+     * No XML layout change is required.
+     */
+    private var btnPairingQr: Button? = null
 
 
     override fun onCreate(
@@ -169,6 +187,12 @@ class MainActivity : AppCompatActivity() {
                             "Tracking: GPS Active"
 
 
+                        /*
+                         * Keep Pairing QR button available.
+                         */
+                        ensurePairingQrButton()
+
+
                         sendLocationToFirebase(
                             location
                         )
@@ -253,6 +277,12 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Tracking: Stopped"
 
+            /*
+             * QR button can still be used
+             * even when OFF DUTY.
+             */
+            ensurePairingQrButton()
+
             return
         }
 
@@ -273,6 +303,8 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Tracking: Driver verification pending"
 
+            ensurePairingQrButton()
+
             return
         }
 
@@ -290,6 +322,9 @@ class MainActivity : AppCompatActivity() {
 
         tvTrackingStatus.text =
             "Tracking: Starting..."
+
+
+        ensurePairingQrButton()
 
 
         if (
@@ -491,7 +526,7 @@ class MainActivity : AppCompatActivity() {
     /*
      * Show Firebase UID on the existing status area.
      *
-     * No XML/layout change is required.
+     * Also create the QR button.
      */
     private fun showPairingId() {
 
@@ -506,7 +541,340 @@ class MainActivity : AppCompatActivity() {
 
             tvTrackingStatus.text =
                 "Pairing ID:\n$uid"
+
+            ensurePairingQrButton()
         }
+    }
+
+
+    /*
+     * Create a Pairing QR button without changing XML.
+     *
+     * The button is inserted immediately after
+     * tvTrackingStatus inside its existing parent.
+     */
+    private fun ensurePairingQrButton() {
+
+        if (btnPairingQr != null) {
+            return
+        }
+
+
+        val uid =
+            firebaseUid
+
+
+        if (
+            uid == null ||
+            uid.isEmpty()
+        ) {
+
+            return
+        }
+
+
+        val parent =
+            tvTrackingStatus.parent
+
+
+        if (parent !is ViewGroup) {
+            return
+        }
+
+
+        val button =
+            Button(this)
+
+
+        button.text =
+            "📷 SHOW PAIRING QR"
+
+
+        button.isAllCaps = false
+
+
+        button.setOnClickListener {
+
+            showPairingQrDialog()
+        }
+
+
+        try {
+
+            val index =
+                parent.indexOfChild(
+                    tvTrackingStatus
+                )
+
+
+            if (index >= 0) {
+
+                parent.addView(
+                    button,
+                    index + 1
+                )
+
+            } else {
+
+                parent.addView(
+                    button
+                )
+            }
+
+
+            btnPairingQr =
+                button
+
+        } catch (e: Exception) {
+
+            btnPairingQr = null
+        }
+    }
+
+
+    /*
+     * Generate and show QR containing ONLY the Firebase UID.
+     *
+     * Admin Panel QR scanner will read this UID
+     * and put it into Device Pairing ID.
+     */
+    private fun showPairingQrDialog() {
+
+        val uid =
+            firebaseUid
+
+
+        if (
+            uid == null ||
+            uid.isEmpty()
+        ) {
+
+            AlertDialog.Builder(this)
+                .setTitle("Pairing QR")
+                .setMessage(
+                    "Firebase Pairing ID अभी उपलब्ध नहीं है."
+                )
+                .setPositiveButton(
+                    "OK",
+                    null
+                )
+                .show()
+
+            return
+        }
+
+
+        try {
+
+            val qrBitmap =
+                generateQrBitmap(
+                    uid,
+                    700,
+                    700
+                )
+
+
+            val container =
+                LinearLayout(this)
+
+
+            container.orientation =
+                LinearLayout.VERTICAL
+
+
+            container.gravity =
+                Gravity.CENTER
+
+
+            val padding =
+                (20 * resources.displayMetrics.density)
+                    .toInt()
+
+
+            container.setPadding(
+                padding,
+                padding,
+                padding,
+                padding
+            )
+
+
+            val title =
+                TextView(this)
+
+
+            title.text =
+                "Driver Pairing QR"
+
+
+            title.textSize =
+                20f
+
+
+            title.gravity =
+                Gravity.CENTER
+
+
+            title.setTextColor(
+                Color.BLACK
+            )
+
+
+            container.addView(
+                title,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+
+
+            val imageView =
+                ImageView(this)
+
+
+            imageView.setImageBitmap(
+                qrBitmap
+            )
+
+
+            imageView.adjustViewBounds =
+                true
+
+
+            val imageParams =
+                LinearLayout.LayoutParams(
+                    (280 * resources.displayMetrics.density)
+                        .toInt(),
+                    (280 * resources.displayMetrics.density)
+                        .toInt()
+                )
+
+
+            imageParams.gravity =
+                Gravity.CENTER
+
+
+            imageParams.topMargin =
+                (15 * resources.displayMetrics.density)
+                    .toInt()
+
+
+            imageParams.bottomMargin =
+                (15 * resources.displayMetrics.density)
+                    .toInt()
+
+
+            container.addView(
+                imageView,
+                imageParams
+            )
+
+
+            val uidText =
+                TextView(this)
+
+
+            uidText.text =
+                "Pairing ID:\n$uid"
+
+
+            uidText.textSize =
+                13f
+
+
+            uidText.gravity =
+                Gravity.CENTER
+
+
+            uidText.setTextColor(
+                Color.DKGRAY
+            )
+
+
+            container.addView(
+                uidText,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+
+
+            AlertDialog.Builder(this)
+                .setView(container)
+                .setNegativeButton(
+                    "CLOSE",
+                    null
+                )
+                .show()
+
+        } catch (e: Exception) {
+
+            AlertDialog.Builder(this)
+                .setTitle("QR Error")
+                .setMessage(
+                    "Pairing QR generate नहीं हो पाया.\n\n${e.message}"
+                )
+                .setPositiveButton(
+                    "OK",
+                    null
+                )
+                .show()
+        }
+    }
+
+
+    /*
+     * QR Bitmap Generator
+     */
+    private fun generateQrBitmap(
+        text: String,
+        width: Int,
+        height: Int
+    ): Bitmap {
+
+        val bitMatrix =
+            MultiFormatWriter()
+                .encode(
+                    text,
+                    BarcodeFormat.QR_CODE,
+                    width,
+                    height
+                )
+
+
+        val bitmap =
+            Bitmap.createBitmap(
+                width,
+                height,
+                Bitmap.Config.ARGB_8888
+            )
+
+
+        for (x in 0 until width) {
+
+            for (y in 0 until height) {
+
+                bitmap.setPixel(
+                    x,
+                    y,
+                    if (
+                        bitMatrix.get(
+                            x,
+                            y
+                        )
+                    ) {
+                        Color.BLACK
+                    } else {
+                        Color.WHITE
+                    }
+                )
+            }
+        }
+
+
+        return bitmap
     }
 
 
@@ -586,6 +954,9 @@ class MainActivity : AppCompatActivity() {
                         "Pairing ID:\n$uid"
 
 
+                    ensurePairingQrButton()
+
+
                     val savedDuty =
                         getPreferences()
                             .getBoolean(
@@ -626,6 +997,9 @@ class MainActivity : AppCompatActivity() {
 
                     tvLastLocation.text =
                         "Device not registered"
+
+
+                    ensurePairingQrButton()
                 }
 
             }
@@ -640,6 +1014,9 @@ class MainActivity : AppCompatActivity() {
                 tvTrackingStatus.text =
                     "Pairing ID:\n$uid\n\n" +
                     "Driver verification failed"
+
+
+                ensurePairingQrButton()
             }
     }
 
@@ -741,6 +1118,9 @@ class MainActivity : AppCompatActivity() {
         tvTrackingStatus.text =
             "Driver ID: $driverId\n" +
             "Tracking: Starting..."
+
+
+        ensurePairingQrButton()
 
 
         startDriverLocationService()
@@ -1027,6 +1407,9 @@ class MainActivity : AppCompatActivity() {
         tvTrackingStatus.text =
             "Driver ID: $driverId\n" +
             "Tracking: Stopped"
+
+
+        ensurePairingQrButton()
     }
 
 
