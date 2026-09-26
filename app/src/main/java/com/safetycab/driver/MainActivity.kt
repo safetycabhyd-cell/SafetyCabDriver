@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
@@ -43,27 +42,43 @@ import java.util.HashMap
 
 class MainActivity : AppCompatActivity() {
 
+    // ============================================================
+    // SERIAL NO. 01 — PERMISSIONS / CONSTANTS
+    // ============================================================
+
     private val LOCATION_PERMISSION_REQUEST = 1001
     private val BACKGROUND_LOCATION_PERMISSION_REQUEST = 1002
+
+    private val PREFS_NAME = "SafetyCabDriverPrefs"
+    private val DUTY_KEY = "dutyOn"
+
+
+    // ============================================================
+    // SERIAL NO. 02 — DYNAMIC DRIVER / DEVICE ID
+    // ============================================================
 
     /*
      * Driver ID is NOT hard-coded.
      *
-     * It will be loaded from:
+     * Driver ID comes from:
      *
      * driverDevices/<Firebase Auth UID>/driverId
      */
+
     private var driverId: String? = null
 
     /*
-     * Firebase Anonymous UID of this device.
+     * Firebase Anonymous Auth UID.
      *
-     * This is the device pairing identity.
+     * This is the Device Pairing ID.
      */
+
     private var firebaseUid: String? = null
 
-    private val PREFS_NAME = "SafetyCabDriverPrefs"
-    private val DUTY_KEY = "dutyOn"
+
+    // ============================================================
+    // SERIAL NO. 03 — UI REFERENCES
+    // ============================================================
 
     private lateinit var btnDuty: Button
     private lateinit var tvDutyStatus: TextView
@@ -71,6 +86,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTrackingStatus: TextView
     private lateinit var tvLastLocation: TextView
     private lateinit var tvConnectionStatus: TextView
+
+    /*
+     * QR button is created in code.
+     * No XML change required.
+     */
+
+    private var btnPairingQr: Button? = null
+
+
+    // ============================================================
+    // SERIAL NO. 04 — LOCATION / FIREBASE
+    // ============================================================
 
     private lateinit var fusedLocationClient:
             FusedLocationProviderClient
@@ -84,18 +111,23 @@ class MainActivity : AppCompatActivity() {
     private lateinit var firebaseDatabase:
             FirebaseDatabase
 
+
+    // ============================================================
+    // SERIAL NO. 05 — APP STATE
+    // ============================================================
+
     private var dutyOn = false
+
     private var firebaseReady = false
+
     private var driverReady = false
+
     private var waitingForBackgroundPermission = false
 
-    /*
-     * QR button is created in code.
-     *
-     * No XML layout change is required.
-     */
-    private var btnPairingQr: Button? = null
 
+    // ============================================================
+    // SERIAL NO. 06 — ACTIVITY CREATE
+    // ============================================================
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -140,9 +172,10 @@ class MainActivity : AppCompatActivity() {
 
 
         /*
-         * Driver cannot start Duty until
-         * Firebase verifies this device.
+         * Duty disabled until Firebase
+         * verifies this device.
          */
+
         btnDuty.isEnabled = false
 
 
@@ -166,20 +199,13 @@ class MainActivity : AppCompatActivity() {
 
                     if (location != null) {
 
-                        val latitude =
-                            location.latitude
-
-                        val longitude =
-                            location.longitude
-
-
                         tvGpsStatus.text =
                             "GPS: Active"
 
 
                         tvLastLocation.text =
-                            "Latitude: $latitude\n" +
-                            "Longitude: $longitude\n" +
+                            "Latitude: ${location.latitude}\n" +
+                            "Longitude: ${location.longitude}\n" +
                             "Last Update: Just now"
 
 
@@ -187,9 +213,6 @@ class MainActivity : AppCompatActivity() {
                             "Tracking: GPS Active"
 
 
-                        /*
-                         * Keep Pairing QR button available.
-                         */
                         ensurePairingQrButton()
 
 
@@ -230,6 +253,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 07 — LOCAL DUTY PREFERENCES
+    // ============================================================
+
     private fun getPreferences() =
         getSharedPreferences(
             PREFS_NAME,
@@ -250,6 +277,10 @@ class MainActivity : AppCompatActivity() {
             .apply()
     }
 
+
+    // ============================================================
+    // SERIAL NO. 08 — RESTORE DUTY
+    // ============================================================
 
     private fun restoreDutyState() {
 
@@ -277,10 +308,7 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Tracking: Stopped"
 
-            /*
-             * QR button can still be used
-             * even when OFF DUTY.
-             */
+
             ensurePairingQrButton()
 
             return
@@ -302,6 +330,7 @@ class MainActivity : AppCompatActivity() {
 
             tvTrackingStatus.text =
                 "Tracking: Driver verification pending"
+
 
             ensurePairingQrButton()
 
@@ -344,6 +373,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 09 — LOCATION PERMISSIONS
+    // ============================================================
+
     private fun hasLocationPermission(): Boolean {
 
         return ContextCompat.checkSelfPermission(
@@ -375,6 +408,10 @@ class MainActivity : AppCompatActivity() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+
+    // ============================================================
+    // SERIAL NO. 10 — FIREBASE INITIALIZATION
+    // ============================================================
 
     private fun initializeFirebase() {
 
@@ -451,6 +488,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
 
             firebaseReady = false
+
             driverReady = false
 
             tvConnectionStatus.text =
@@ -458,6 +496,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    // ============================================================
+    // SERIAL NO. 11 — FIREBASE ANONYMOUS LOGIN
+    // ============================================================
 
     private fun signInFirebase() {
 
@@ -512,6 +554,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
 
                     firebaseReady = false
+
                     driverReady = false
 
                     tvConnectionStatus.text =
@@ -523,11 +566,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /*
-     * Show Firebase UID on the existing status area.
-     *
-     * Also create the QR button.
-     */
+    // ============================================================
+    // SERIAL NO. 12 — SHOW PAIRING ID
+    // ============================================================
+
     private fun showPairingId() {
 
         val uid =
@@ -535,27 +577,28 @@ class MainActivity : AppCompatActivity() {
 
 
         if (
-            uid != null &&
-            uid.isNotEmpty()
+            !uid.isNullOrEmpty()
         ) {
 
             tvTrackingStatus.text =
                 "Pairing ID:\n$uid"
+
 
             ensurePairingQrButton()
         }
     }
 
 
-    /*
-     * Create a Pairing QR button without changing XML.
-     *
-     * The button is inserted immediately after
-     * tvTrackingStatus inside its existing parent.
-     */
+    // ============================================================
+    // SERIAL NO. 13 — CREATE PAIRING QR BUTTON
+    // ============================================================
+
     private fun ensurePairingQrButton() {
 
-        if (btnPairingQr != null) {
+        if (
+            btnPairingQr != null
+        ) {
+
             return
         }
 
@@ -565,8 +608,7 @@ class MainActivity : AppCompatActivity() {
 
 
         if (
-            uid == null ||
-            uid.isEmpty()
+            uid.isNullOrEmpty()
         ) {
 
             return
@@ -577,7 +619,10 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.parent
 
 
-        if (parent !is ViewGroup) {
+        if (
+            parent !is ViewGroup
+        ) {
+
             return
         }
 
@@ -590,7 +635,8 @@ class MainActivity : AppCompatActivity() {
             "📷 SHOW PAIRING QR"
 
 
-        button.isAllCaps = false
+        button.isAllCaps =
+            false
 
 
         button.setOnClickListener {
@@ -627,17 +673,16 @@ class MainActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
 
-            btnPairingQr = null
+            btnPairingQr =
+                null
         }
     }
 
 
-    /*
-     * Generate and show QR containing ONLY the Firebase UID.
-     *
-     * Admin Panel QR scanner will read this UID
-     * and put it into Device Pairing ID.
-     */
+    // ============================================================
+    // SERIAL NO. 14 — SHOW PAIRING QR
+    // ============================================================
+
     private fun showPairingQrDialog() {
 
         val uid =
@@ -645,12 +690,13 @@ class MainActivity : AppCompatActivity() {
 
 
         if (
-            uid == null ||
-            uid.isEmpty()
+            uid.isNullOrEmpty()
         ) {
 
             AlertDialog.Builder(this)
-                .setTitle("Pairing QR")
+                .setTitle(
+                    "Pairing QR"
+                )
                 .setMessage(
                     "Firebase Pairing ID अभी उपलब्ध नहीं है."
                 )
@@ -687,8 +733,10 @@ class MainActivity : AppCompatActivity() {
 
 
             val padding =
-                (20 * resources.displayMetrics.density)
-                    .toInt()
+                (
+                    20 *
+                    resources.displayMetrics.density
+                ).toInt()
 
 
             container.setPadding(
@@ -744,10 +792,14 @@ class MainActivity : AppCompatActivity() {
 
             val imageParams =
                 LinearLayout.LayoutParams(
-                    (280 * resources.displayMetrics.density)
-                        .toInt(),
-                    (280 * resources.displayMetrics.density)
-                        .toInt()
+                    (
+                        280 *
+                        resources.displayMetrics.density
+                    ).toInt(),
+                    (
+                        280 *
+                        resources.displayMetrics.density
+                    ).toInt()
                 )
 
 
@@ -756,13 +808,17 @@ class MainActivity : AppCompatActivity() {
 
 
             imageParams.topMargin =
-                (15 * resources.displayMetrics.density)
-                    .toInt()
+                (
+                    15 *
+                    resources.displayMetrics.density
+                ).toInt()
 
 
             imageParams.bottomMargin =
-                (15 * resources.displayMetrics.density)
-                    .toInt()
+                (
+                    15 *
+                    resources.displayMetrics.density
+                ).toInt()
 
 
             container.addView(
@@ -802,7 +858,9 @@ class MainActivity : AppCompatActivity() {
 
 
             AlertDialog.Builder(this)
-                .setView(container)
+                .setView(
+                    container
+                )
                 .setNegativeButton(
                     "CLOSE",
                     null
@@ -812,7 +870,9 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
 
             AlertDialog.Builder(this)
-                .setTitle("QR Error")
+                .setTitle(
+                    "QR Error"
+                )
                 .setMessage(
                     "Pairing QR generate नहीं हो पाया.\n\n${e.message}"
                 )
@@ -825,9 +885,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /*
-     * QR Bitmap Generator
-     */
+    // ============================================================
+    // SERIAL NO. 15 — QR BITMAP GENERATOR
+    // ============================================================
+
     private fun generateQrBitmap(
         text: String,
         width: Int,
@@ -852,9 +913,13 @@ class MainActivity : AppCompatActivity() {
             )
 
 
-        for (x in 0 until width) {
+        for (
+            x in 0 until width
+        ) {
 
-            for (y in 0 until height) {
+            for (
+                y in 0 until height
+            ) {
 
                 bitmap.setPixel(
                     x,
@@ -865,8 +930,11 @@ class MainActivity : AppCompatActivity() {
                             y
                         )
                     ) {
+
                         Color.BLACK
+
                     } else {
+
                         Color.WHITE
                     }
                 )
@@ -877,6 +945,10 @@ class MainActivity : AppCompatActivity() {
         return bitmap
     }
 
+
+    // ============================================================
+    // SERIAL NO. 16 — LOAD DRIVER ID
+    // ============================================================
 
     private fun loadDriverId() {
 
@@ -905,9 +977,6 @@ class MainActivity : AppCompatActivity() {
             uid
 
 
-        /*
-         * Show this device's pairing ID.
-         */
         showPairingId()
 
 
@@ -915,8 +984,12 @@ class MainActivity : AppCompatActivity() {
             .getReference(
                 "driverDevices"
             )
-            .child(uid)
-            .child("driverId")
+            .child(
+                uid
+            )
+            .child(
+                "driverId"
+            )
             .get()
             .addOnSuccessListener { snapshot ->
 
@@ -931,18 +1004,18 @@ class MainActivity : AppCompatActivity() {
                     value.trim().isNotEmpty()
                 ) {
 
-                    /*
-                     * Compatible with current Kotlin setup.
-                     */
                     driverId =
                         value
                             .trim()
                             .toUpperCase()
 
 
-                    driverReady = true
+                    driverReady =
+                        true
 
-                    btnDuty.isEnabled = true
+
+                    btnDuty.isEnabled =
+                        true
 
 
                     tvConnectionStatus.text =
@@ -972,10 +1045,16 @@ class MainActivity : AppCompatActivity() {
 
                 } else {
 
-                    driverId = null
-                    driverReady = false
+                    driverId =
+                        null
 
-                    btnDuty.isEnabled = false
+
+                    driverReady =
+                        false
+
+
+                    btnDuty.isEnabled =
+                        false
 
 
                     tvDutyStatus.text =
@@ -1005,10 +1084,16 @@ class MainActivity : AppCompatActivity() {
             }
             .addOnFailureListener {
 
-                driverId = null
-                driverReady = false
+                driverId =
+                    null
 
-                btnDuty.isEnabled = false
+
+                driverReady =
+                    false
+
+
+                btnDuty.isEnabled =
+                    false
 
 
                 tvTrackingStatus.text =
@@ -1020,6 +1105,10 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+
+    // ============================================================
+    // SERIAL NO. 17 — START DUTY
+    // ============================================================
 
     private fun startDuty() {
 
@@ -1035,7 +1124,9 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        if (!hasLocationPermission()) {
+        if (
+            !hasLocationPermission()
+        ) {
 
             ActivityCompat.requestPermissions(
                 this,
@@ -1050,7 +1141,9 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        if (!hasBackgroundLocationPermission()) {
+        if (
+            !hasBackgroundLocationPermission()
+        ) {
 
             if (
                 Build.VERSION.SDK_INT >=
@@ -1075,7 +1168,9 @@ class MainActivity : AppCompatActivity() {
                         )
 
 
-                    startActivity(intent)
+                    startActivity(
+                        intent
+                    )
 
                 } catch (e: Exception) {
 
@@ -1101,19 +1196,26 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        dutyOn = true
+        dutyOn =
+            true
 
-        saveDutyState(true)
+
+        saveDutyState(
+            true
+        )
 
 
         tvDutyStatus.text =
             "ON DUTY"
 
+
         btnDuty.text =
             "STOP DUTY"
 
+
         tvGpsStatus.text =
             "GPS: Starting..."
+
 
         tvTrackingStatus.text =
             "Driver ID: $driverId\n" +
@@ -1125,9 +1227,14 @@ class MainActivity : AppCompatActivity() {
 
         startDriverLocationService()
 
+
         startLocationUpdates()
     }
 
+
+    // ============================================================
+    // SERIAL NO. 18 — FOREGROUND LOCATION SERVICE
+    // ============================================================
 
     private fun startDriverLocationService() {
 
@@ -1162,14 +1269,20 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 19 — LOCATION UPDATES
+    // ============================================================
+
     private fun startLocationUpdates() {
 
         val locationRequest =
             LocationRequest.create().apply {
 
-                interval = 5000
+                interval =
+                    5000
 
-                fastestInterval = 3000
+                fastestInterval =
+                    3000
 
                 priority =
                     LocationRequest
@@ -1201,6 +1314,10 @@ class MainActivity : AppCompatActivity() {
             )
     }
 
+
+    // ============================================================
+    // SERIAL NO. 20 — SEND LOCATION TO FIREBASE
+    // ============================================================
 
     private fun sendLocationToFirebase(
         location: Location
@@ -1289,7 +1406,6 @@ class MainActivity : AppCompatActivity() {
 
                     tvConnectionStatus.text =
                         "Firebase: Connected"
-
                 }
                 .addOnFailureListener {
 
@@ -1305,11 +1421,19 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 21 — STOP DUTY
+    // ============================================================
+
     private fun stopDuty() {
 
-        dutyOn = false
+        dutyOn =
+            false
 
-        saveDutyState(false)
+
+        saveDutyState(
+            false
+        )
 
 
         try {
@@ -1398,11 +1522,14 @@ class MainActivity : AppCompatActivity() {
         tvDutyStatus.text =
             "OFF DUTY"
 
+
         btnDuty.text =
             "START DUTY"
 
+
         tvGpsStatus.text =
             "GPS: Not Started"
+
 
         tvTrackingStatus.text =
             "Driver ID: $driverId\n" +
@@ -1412,6 +1539,10 @@ class MainActivity : AppCompatActivity() {
         ensurePairingQrButton()
     }
 
+
+    // ============================================================
+    // SERIAL NO. 22 — PERMISSION RESULT
+    // ============================================================
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -1474,12 +1605,18 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 23 — RESUME
+    // ============================================================
+
     override fun onResume() {
 
         super.onResume()
 
 
-        if (waitingForBackgroundPermission) {
+        if (
+            waitingForBackgroundPermission
+        ) {
 
             waitingForBackgroundPermission =
                 false
@@ -1503,11 +1640,14 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ============================================================
+    // SERIAL NO. 24 — DESTROY
+    // ============================================================
+
     override fun onDestroy() {
 
         /*
          * Do NOT stop DriverLocationService here.
-         *
          * Foreground service continues independently.
          */
 
