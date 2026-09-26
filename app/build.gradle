@@ -46,6 +46,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:20.0.3'
     implementation 'com.google.firebase:firebase-database:19.6.0'
 
+    // ZXing QR Code Generator
+    implementation 'com.google.zxing:core:3.5.3'
+
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
