@@ -44,6 +44,7 @@ dependencies {
 
     // Firebase
     implementation 'com.google.firebase:firebase-auth:20.0.3'
+    implementation 'com.google.firebase:firebase-firestore:22.0.1'
     implementation 'com.google.firebase:firebase-database:19.6.0'
 
     // ZXing QR Code Generator
