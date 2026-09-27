@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.location.Location
 import android.net.Uri
@@ -15,7 +16,9 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Switch
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 import androidx.appcompat.app.AlertDialog
@@ -38,6 +41,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 
 import java.util.HashMap
+import java.net.URL
 
 
 class MainActivity : AppCompatActivity() {
@@ -80,12 +84,26 @@ class MainActivity : AppCompatActivity() {
     // SERIAL NO. 03 — UI REFERENCES
     // ============================================================
 
-    private lateinit var btnDuty: Button
+    private lateinit var btnDuty: Switch
     private lateinit var tvDutyStatus: TextView
     private lateinit var tvGpsStatus: TextView
     private lateinit var tvTrackingStatus: TextView
     private lateinit var tvLastLocation: TextView
     private lateinit var tvConnectionStatus: TextView
+
+    private lateinit var ivDriverPhoto: ImageView
+    private lateinit var ivCarPhoto: ImageView
+    private lateinit var tvCarNumber: TextView
+    private lateinit var tvDriverPhotoStatus: TextView
+    private lateinit var tvCarPhotoStatus: TextView
+    private lateinit var settingsPanel: LinearLayout
+    private lateinit var settingsToggle: Button
+
+    private var driverPhotoUrl: String? = null
+    private var carPhotoUrl: String? = null
+    private var carNumber: String? = null
+
+    private val COMPANY_PHONE = "08062180745"
 
     /*
      * QR button is created in code.
@@ -135,56 +153,13 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        setContentView(
-            R.layout.activity_main
-        )
-
-
-        btnDuty =
-            findViewById(
-                R.id.btnDuty
-            )
-
-        tvDutyStatus =
-            findViewById(
-                R.id.tvDutyStatus
-            )
-
-        tvGpsStatus =
-            findViewById(
-                R.id.tvGpsStatus
-            )
-
-        tvTrackingStatus =
-            findViewById(
-                R.id.tvTrackingStatus
-            )
-
-        tvLastLocation =
-            findViewById(
-                R.id.tvLastLocation
-            )
-
-        tvConnectionStatus =
-            findViewById(
-                R.id.tvConnectionStatus
-            )
-
-
-        /*
-         * Duty disabled until Firebase
-         * verifies this device.
-         */
+        createDashboard()
 
         btnDuty.isEnabled = false
 
-
         fusedLocationClient =
             LocationServices
-                .getFusedLocationProviderClient(
-                    this
-                )
-
+                .getFusedLocationProviderClient(this)
 
         locationCallback =
             object : LocationCallback() {
@@ -196,40 +171,33 @@ class MainActivity : AppCompatActivity() {
                     val location: Location? =
                         locationResult.lastLocation
 
-
                     if (location != null) {
 
-                        tvGpsStatus.text =
-                            "GPS: Active"
-
+                        tvGpsStatus.text = "GPS: Active"
 
                         tvLastLocation.text =
                             "Latitude: ${location.latitude}\n" +
                             "Longitude: ${location.longitude}\n" +
                             "Last Update: Just now"
 
-
                         tvTrackingStatus.text =
                             "Tracking: GPS Active"
 
-
                         ensurePairingQrButton()
 
-
-                        sendLocationToFirebase(
-                            location
-                        )
+                        sendLocationToFirebase(location)
                     }
                 }
             }
 
-
         initializeFirebase()
-
 
         btnDuty.setOnClickListener {
 
             if (!driverReady) {
+
+                btnDuty.isChecked = false
+                btnDuty.text = "OFF"
 
                 tvTrackingStatus.text =
                     "Tracking: Driver registration not verified"
@@ -237,23 +205,690 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-
             if (!dutyOn) {
-
                 startDuty()
-
             } else {
-
                 stopDuty()
             }
         }
 
+        settingsToggle.setOnClickListener {
+
+            val show =
+                settingsPanel.visibility != android.view.View.VISIBLE
+
+            settingsPanel.visibility =
+                if (show) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
+                }
+
+            settingsToggle.text =
+                if (show) "⚙ Settings  ▲" else "⚙ Settings  ▼"
+        }
 
         restoreDutyState()
     }
 
 
     // ============================================================
+    // SERIAL NO. 06A — NEW DRIVER DASHBOARD UI
+    // ============================================================
+
+    private fun createDashboard() {
+
+        val scroll =
+            ScrollView(this)
+
+        scroll.layoutParams =
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+
+        scroll.setBackgroundColor(Color.WHITE)
+
+        val root =
+            LinearLayout(this)
+
+        root.orientation =
+            LinearLayout.VERTICAL
+
+        root.setPadding(
+            dp(16),
+            dp(14),
+            dp(16),
+            dp(24)
+        )
+
+        scroll.addView(root)
+
+        val header =
+            TextView(this)
+
+        header.text =
+            "SAFETY CAB\nDriver Panel"
+
+        header.textSize =
+            25f
+
+        header.setTypeface(
+            null,
+            android.graphics.Typeface.BOLD
+        )
+
+        header.gravity =
+            Gravity.CENTER
+
+        header.setTextColor(
+            Color.rgb(0, 70, 145)
+        )
+
+        header.setPadding(
+            0,
+            dp(4),
+            0,
+            dp(12)
+        )
+
+        root.addView(
+            header,
+            lp()
+        )
+
+        val dutyCard =
+            LinearLayout(this)
+
+        dutyCard.orientation =
+            LinearLayout.HORIZONTAL
+
+        dutyCard.gravity =
+            Gravity.CENTER_VERTICAL
+
+        dutyCard.setPadding(
+            dp(16),
+            dp(10),
+            dp(12),
+            dp(10)
+        )
+
+        dutyCard.setBackgroundColor(
+            Color.rgb(239, 247, 255)
+        )
+
+        val dutyLabel =
+            TextView(this)
+
+        dutyLabel.text =
+            "🚕  DUTY"
+
+        dutyLabel.textSize =
+            19f
+
+        dutyLabel.setTypeface(
+            null,
+            android.graphics.Typeface.BOLD
+        )
+
+        dutyLabel.setTextColor(
+            Color.rgb(0, 70, 145)
+        )
+
+        dutyCard.addView(
+            dutyLabel,
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        btnDuty =
+            Switch(this)
+
+        btnDuty.text =
+            "OFF"
+
+        btnDuty.textSize =
+            15f
+
+        btnDuty.isChecked =
+            false
+
+        btnDuty.setTextColor(
+            Color.rgb(0, 70, 145)
+        )
+
+        dutyCard.addView(
+            btnDuty,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        root.addView(
+            dutyCard,
+            marginLp(0, 0, 0, 4)
+        )
+
+        tvDutyStatus =
+            TextView(this)
+
+        tvDutyStatus.text =
+            "OFF DUTY"
+
+        tvDutyStatus.textSize =
+            13f
+
+        tvDutyStatus.gravity =
+            Gravity.CENTER
+
+        tvDutyStatus.setTextColor(
+            Color.DKGRAY
+        )
+
+        root.addView(
+            tvDutyStatus,
+            marginLp(0, 0, 0, 12)
+        )
+
+        val driverCard =
+            createInfoCard()
+
+        ivDriverPhoto =
+            createPhotoView()
+
+        driverCard.addView(
+            ivDriverPhoto,
+            LinearLayout.LayoutParams(
+                dp(105),
+                dp(105)
+            )
+        )
+
+        val driverInfo =
+            LinearLayout(this)
+
+        driverInfo.orientation =
+            LinearLayout.VERTICAL
+
+        driverInfo.setPadding(
+            dp(14),
+            0,
+            0,
+            0
+        )
+
+        driverInfo.addView(
+            textView(
+                "DRIVER",
+                13f,
+                Color.GRAY
+            ),
+            lp()
+        )
+
+        val idView =
+            textView(
+                "Not Registered",
+                25f,
+                Color.rgb(0, 70, 145)
+            )
+
+        idView.id =
+            R.id.tvDriverId
+
+        driverInfo.addView(
+            idView,
+            lp()
+        )
+
+        tvDriverPhotoStatus =
+            textView(
+                "Driver photo",
+                13f,
+                Color.GRAY
+            )
+
+        driverInfo.addView(
+            tvDriverPhotoStatus,
+            lp()
+        )
+
+        driverCard.addView(
+            driverInfo,
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        root.addView(
+            driverCard,
+            marginLp(0, 0, 0, 10)
+        )
+
+        val carCard =
+            createInfoCard()
+
+        ivCarPhoto =
+            createPhotoView()
+
+        carCard.addView(
+            ivCarPhoto,
+            LinearLayout.LayoutParams(
+                dp(105),
+                dp(105)
+            )
+        )
+
+        val carInfo =
+            LinearLayout(this)
+
+        carInfo.orientation =
+            LinearLayout.VERTICAL
+
+        carInfo.setPadding(
+            dp(14),
+            0,
+            0,
+            0
+        )
+
+        carInfo.addView(
+            textView(
+                "CAR NUMBER",
+                13f,
+                Color.GRAY
+            ),
+            lp()
+        )
+
+        tvCarNumber =
+            textView(
+                "Not Registered",
+                23f,
+                Color.rgb(0, 70, 145)
+            )
+
+        carInfo.addView(
+            tvCarNumber,
+            lp()
+        )
+
+        tvCarPhotoStatus =
+            textView(
+                "Car photo",
+                13f,
+                Color.GRAY
+            )
+
+        carInfo.addView(
+            tvCarPhotoStatus,
+            lp()
+        )
+
+        carCard.addView(
+            carInfo,
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        root.addView(
+            carCard,
+            marginLp(0, 0, 0, 12)
+        )
+
+        val supportButton =
+            Button(this)
+
+        supportButton.text =
+            "📞  Help & Support"
+
+        supportButton.textSize =
+            17f
+
+        supportButton.isAllCaps =
+            false
+
+        supportButton.setTextColor(
+            Color.WHITE
+        )
+
+        supportButton.setBackgroundColor(
+            Color.rgb(0, 94, 180)
+        )
+
+        supportButton.setOnClickListener {
+
+            try {
+
+                val intent =
+                    Intent(
+                        Intent.ACTION_DIAL,
+                        Uri.parse(
+                            "tel:$COMPANY_PHONE"
+                        )
+                    )
+
+                startActivity(intent)
+
+            } catch (e: Exception) {
+                // Ignore if no dialer is available.
+            }
+        }
+
+        root.addView(
+            supportButton,
+            marginLp(0, 0, 0, 12)
+        )
+
+        settingsToggle =
+            Button(this)
+
+        settingsToggle.text =
+            "⚙ Settings  ▼"
+
+        settingsToggle.isAllCaps =
+            false
+
+        settingsToggle.textSize =
+            16f
+
+        settingsToggle.setTextColor(
+            Color.rgb(0, 70, 145)
+        )
+
+        root.addView(
+            settingsToggle,
+            marginLp(0, 0, 0, 4)
+        )
+
+        settingsPanel =
+            LinearLayout(this)
+
+        settingsPanel.orientation =
+            LinearLayout.VERTICAL
+
+        settingsPanel.setPadding(
+            dp(14),
+            dp(12),
+            dp(14),
+            dp(12)
+        )
+
+        settingsPanel.setBackgroundColor(
+            Color.rgb(247, 250, 253)
+        )
+
+        settingsPanel.visibility =
+            android.view.View.GONE
+
+        tvConnectionStatus =
+            textView(
+                "Firebase: Not Connected",
+                15f,
+                Color.DKGRAY
+            )
+
+        settingsPanel.addView(
+            tvConnectionStatus,
+            marginLp(0, 0, 0, 6)
+        )
+
+        tvGpsStatus =
+            textView(
+                "GPS: Not Started",
+                15f,
+                Color.DKGRAY
+            )
+
+        settingsPanel.addView(
+            tvGpsStatus,
+            marginLp(0, 0, 0, 6)
+        )
+
+        tvTrackingStatus =
+            textView(
+                "Tracking: Stopped",
+                15f,
+                Color.DKGRAY
+            )
+
+        settingsPanel.addView(
+            tvTrackingStatus,
+            marginLp(0, 0, 0, 6)
+        )
+
+        tvLastLocation =
+            textView(
+                "Latitude: --\nLongitude: --\nLast Update: --",
+                14f,
+                Color.DKGRAY
+            )
+
+        settingsPanel.addView(
+            tvLastLocation,
+            marginLp(0, 0, 0, 4)
+        )
+
+        root.addView(
+            settingsPanel,
+            lp()
+        )
+
+        setContentView(scroll)
+    }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
+
+    private fun lp(): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+    private fun marginLp(
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int
+    ): LinearLayout.LayoutParams {
+
+        return LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(
+                dp(left),
+                dp(top),
+                dp(right),
+                dp(bottom)
+            )
+        }
+    }
+
+    private fun createInfoCard(): LinearLayout {
+
+        return LinearLayout(this).apply {
+
+            orientation =
+                LinearLayout.HORIZONTAL
+
+            gravity =
+                Gravity.CENTER_VERTICAL
+
+            setPadding(
+                dp(12),
+                dp(12),
+                dp(12),
+                dp(12)
+            )
+
+            setBackgroundColor(
+                Color.rgb(247, 250, 253)
+            )
+        }
+    }
+
+    private fun createPhotoView(): ImageView {
+
+        return ImageView(this).apply {
+
+            setBackgroundColor(
+                Color.rgb(225, 236, 248)
+            )
+
+            scaleType =
+                ImageView.ScaleType.CENTER_CROP
+
+            setImageResource(
+                android.R.drawable.ic_menu_camera
+            )
+        }
+    }
+
+    private fun textView(
+        value: String,
+        size: Float,
+        color: Int
+    ): TextView {
+
+        return TextView(this).apply {
+
+            text =
+                value
+
+            textSize =
+                size
+
+            setTextColor(
+                color
+            )
+
+            setPadding(
+                0,
+                dp(3),
+                0,
+                dp(3)
+            )
+        }
+    }
+
+    private fun setDutyUi(
+        enabled: Boolean
+    ) {
+
+        dutyOn =
+            enabled
+
+        btnDuty.isChecked =
+            enabled
+
+        btnDuty.text =
+            if (enabled) "ON" else "OFF"
+
+        tvDutyStatus.text =
+            if (enabled) "ON DUTY" else "OFF DUTY"
+    }
+
+    private fun updateProfileUi() {
+
+        findViewById<TextView>(
+            R.id.tvDriverId
+        )?.text =
+            driverId ?: "Not Registered"
+
+        tvCarNumber.text =
+            carNumber
+                ?.takeIf { it.isNotBlank() }
+                ?: "Not Registered"
+
+        tvDriverPhotoStatus.text =
+            if (driverPhotoUrl.isNullOrBlank()) {
+                "Driver photo not registered"
+            } else {
+                "Driver photo available"
+            }
+
+        tvCarPhotoStatus.text =
+            if (carPhotoUrl.isNullOrBlank()) {
+                "Car photo not registered"
+            } else {
+                "Car photo available"
+            }
+
+        if (!driverPhotoUrl.isNullOrBlank()) {
+            loadImageIntoView(
+                driverPhotoUrl!!,
+                ivDriverPhoto,
+                tvDriverPhotoStatus,
+                "Driver photo loaded"
+            )
+        }
+
+        if (!carPhotoUrl.isNullOrBlank()) {
+            loadImageIntoView(
+                carPhotoUrl!!,
+                ivCarPhoto,
+                tvCarPhotoStatus,
+                "Car photo loaded"
+            )
+        }
+    }
+
+    private fun loadImageIntoView(
+        url: String,
+        imageView: ImageView,
+        statusView: TextView,
+        successText: String
+    ) {
+
+        Thread {
+
+            try {
+
+                val bitmap =
+                    URL(url)
+                        .openStream()
+                        .use {
+                            BitmapFactory.decodeStream(it)
+                        }
+
+                runOnUiThread {
+
+                    if (bitmap != null) {
+
+                        imageView.setImageBitmap(bitmap)
+                        statusView.text = successText
+
+                    } else {
+
+                        statusView.text =
+                            "Photo could not be loaded"
+                    }
+                }
+
+            } catch (e: Exception) {
+
+                runOnUiThread {
+
+                    statusView.text =
+                        "Photo could not be loaded"
+                }
+            }
+
+        }.start()
+    }
+
+
     // SERIAL NO. 07 — LOCAL DUTY PREFERENCES
     // ============================================================
 
@@ -294,13 +929,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!savedDuty) {
 
-            dutyOn = false
-
-            tvDutyStatus.text =
-                "OFF DUTY"
-
-            btnDuty.text =
-                "START DUTY"
+            setDutyUi(false)
 
             tvGpsStatus.text =
                 "GPS: Not Started"
@@ -317,13 +946,10 @@ class MainActivity : AppCompatActivity() {
 
         if (!driverReady) {
 
-            dutyOn = false
+            setDutyUi(false)
 
             tvDutyStatus.text =
                 "DRIVER VERIFYING..."
-
-            btnDuty.text =
-                "START DUTY"
 
             tvGpsStatus.text =
                 "GPS: Waiting"
@@ -338,13 +964,7 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        dutyOn = true
-
-        tvDutyStatus.text =
-            "ON DUTY"
-
-        btnDuty.text =
-            "STOP DUTY"
+        setDutyUi(true)
 
         tvGpsStatus.text =
             "GPS: Starting..."
@@ -632,7 +1252,7 @@ class MainActivity : AppCompatActivity() {
 
 
         button.text =
-            "📷 SHOW PAIRING QR"
+            "📷 Scanner / Pairing QR"
 
 
         button.isAllCaps =
@@ -1009,6 +1629,7 @@ class MainActivity : AppCompatActivity() {
                             .trim()
                             .toUpperCase()
 
+                    loadDriverProfile(snapshot)
 
                     driverReady =
                         true
@@ -1107,6 +1728,53 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
+    // ============================================================
+    // SERIAL NO. 16A — DRIVER PROFILE DATA
+    // ============================================================
+
+    private fun loadDriverProfile(
+        snapshot: com.google.firebase.database.DataSnapshot
+    ) {
+
+        driverPhotoUrl =
+            firstNonBlank(
+                snapshot.child("driverPhotoUrl").getValue(String::class.java),
+                snapshot.child("photoUrl").getValue(String::class.java),
+                snapshot.child("profilePhotoUrl").getValue(String::class.java)
+            )
+
+        carPhotoUrl =
+            firstNonBlank(
+                snapshot.child("carPhotoUrl").getValue(String::class.java),
+                snapshot.child("vehiclePhotoUrl").getValue(String::class.java),
+                snapshot.child("vehiclePhoto").getValue(String::class.java)
+            )
+
+        carNumber =
+            firstNonBlank(
+                snapshot.child("carNumber").getValue(String::class.java),
+                snapshot.child("vehicleNumber").getValue(String::class.java),
+                snapshot.child("registrationNumber").getValue(String::class.java)
+            )
+
+        updateProfileUi()
+    }
+
+    private fun firstNonBlank(
+        vararg values: String?
+    ): String? {
+
+        for (value in values) {
+
+            if (!value.isNullOrBlank()) {
+                return value.trim()
+            }
+        }
+
+        return null
+    }
+
+
     // SERIAL NO. 17 — START DUTY
     // ============================================================
 
@@ -1127,6 +1795,8 @@ class MainActivity : AppCompatActivity() {
         if (
             !hasLocationPermission()
         ) {
+
+            setDutyUi(false)
 
             ActivityCompat.requestPermissions(
                 this,
@@ -1178,10 +1848,13 @@ class MainActivity : AppCompatActivity() {
                         "Tracking: Open App Settings"
                 }
 
+                setDutyUi(false)
 
                 return
 
             } else {
+
+                setDutyUi(false)
 
                 ActivityCompat.requestPermissions(
                     this,
@@ -1199,18 +1872,11 @@ class MainActivity : AppCompatActivity() {
         dutyOn =
             true
 
-
         saveDutyState(
             true
         )
 
-
-        tvDutyStatus.text =
-            "ON DUTY"
-
-
-        btnDuty.text =
-            "STOP DUTY"
+        setDutyUi(true)
 
 
         tvGpsStatus.text =
@@ -1519,12 +2185,7 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        tvDutyStatus.text =
-            "OFF DUTY"
-
-
-        btnDuty.text =
-            "START DUTY"
+        setDutyUi(false)
 
 
         tvGpsStatus.text =
