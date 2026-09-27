@@ -5,16 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F7FBFF">
+    android:background="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
         <!-- ================================================= -->
-        <!-- SAFETY CAB HEADER -->
+        <!-- SAFETY CAB COMPLETE LOGO -->
         <!-- ================================================= -->
 
         <LinearLayout
@@ -22,27 +22,16 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="10dp"
-            android:background="#EAF7FF">
+            android:padding="4dp"
+            android:background="#FFFFFF">
 
-            <TextView
+            <ImageView
+                android:id="@+id/imgSafetyCabLogo"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="SAFETY CAB"
-                android:textSize="30sp"
-                android:textStyle="bold"
-                android:textColor="#0757A6"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="HYDERABAD"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#09A7E8"
-                android:gravity="center"
-                android:paddingTop="2dp" />
+                android:layout_height="210dp"
+                android:src="@drawable/file_000000005080820eb97aa57d3fa76943"
+                android:scaleType="fitCenter"
+                android:contentDescription="Safety Cab Logo" />
 
         </LinearLayout>
 
@@ -56,16 +45,16 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="14dp"
-            android:layout_marginTop="12dp"
-            android:background="#EAF7FF">
+            android:padding="12dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Duty Status"
-                android:textSize="20sp"
+                android:text="🚕  DUTY"
+                android:textSize="19sp"
                 android:textStyle="bold"
                 android:textColor="#12345B" />
 
@@ -77,7 +66,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:backgroundTint="#0788D1"
+                android:backgroundTint="#0757A6"
                 android:gravity="center" />
 
         </LinearLayout>
@@ -92,7 +81,7 @@
             android:textStyle="bold"
             android:textColor="#0757A6"
             android:gravity="center"
-            android:padding="5dp" />
+            android:padding="4dp" />
 
 
         <!-- ================================================= -->
@@ -104,11 +93,9 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="14dp"
-            android:layout_marginTop="10dp"
+            android:padding="12dp"
+            android:layout_marginTop="6dp"
             android:background="#FFFFFF">
-
-            <!-- Driver Photo -->
 
             <ImageView
                 android:id="@+id/imgDriverPhoto"
@@ -128,8 +115,8 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Driver ID"
-                    android:textSize="15sp"
+                    android:text="DRIVER"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="#0757A6" />
 
@@ -138,10 +125,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Not Registered"
-                    android:textSize="28sp"
+                    android:textSize="27sp"
                     android:textStyle="bold"
                     android:textColor="#12345B"
-                    android:paddingTop="5dp" />
+                    android:paddingTop="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Driver photo"
+                    android:textSize="12sp"
+                    android:textColor="#777777"
+                    android:paddingTop="2dp" />
 
             </LinearLayout>
 
@@ -157,9 +152,9 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="14dp"
-            android:layout_marginTop="10dp"
-            android:background="#EAF7FF">
+            android:padding="12dp"
+            android:layout_marginTop="6dp"
+            android:background="#FFFFFF">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -171,7 +166,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Help and Support"
-                    android:textSize="18sp"
+                    android:textSize="17sp"
                     android:textStyle="bold"
                     android:textColor="#12345B" />
 
@@ -180,22 +175,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="08062180745"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="#0788D1"
+                    android:textColor="#0757A6"
                     android:paddingTop="3dp" />
 
             </LinearLayout>
 
             <Button
                 android:id="@+id/btnCompanyCall"
-                android:layout_width="100dp"
+                android:layout_width="105dp"
                 android:layout_height="50dp"
-                android:text="CALL"
-                android:textSize="15sp"
+                android:text="📞 CALL"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:backgroundTint="#0788D1" />
+                android:backgroundTint="#0757A6" />
 
         </LinearLayout>
 
@@ -209,8 +204,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="14dp"
-            android:layout_marginTop="10dp"
+            android:padding="12dp"
+            android:layout_marginTop="6dp"
             android:background="#FFFFFF">
 
             <ImageView
@@ -231,8 +226,8 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Car Number"
-                    android:textSize="15sp"
+                    android:text="CAR NUMBER"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="#0757A6" />
 
@@ -244,7 +239,15 @@
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="#12345B"
-                    android:paddingTop="5dp" />
+                    android:paddingTop="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Car photo"
+                    android:textSize="12sp"
+                    android:textColor="#777777"
+                    android:paddingTop="2dp" />
 
             </LinearLayout>
 
@@ -258,10 +261,10 @@
         <Button
             android:id="@+id/btnSettings"
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:layout_marginTop="12dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
             android:text="⚙  SETTINGS"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:backgroundTint="#0757A6" />
@@ -269,7 +272,7 @@
 
         <!-- ================================================= -->
         <!-- HIDDEN SYSTEM FIELDS -->
-        <!-- Keep IDs because MainActivity.kt uses them -->
+        <!-- MainActivity.kt IDs preserved -->
         <!-- ================================================= -->
 
         <TextView
@@ -309,11 +312,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Safety Cab Driver App"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textColor="#6B7C93"
             android:gravity="center"
-            android:paddingTop="25dp"
-            android:paddingBottom="20dp" />
+            android:paddingTop="18dp"
+            android:paddingBottom="15dp" />
 
     </LinearLayout>
 
