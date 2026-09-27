@@ -61,21 +61,7 @@ class MainActivity : AppCompatActivity() {
     // SERIAL NO. 02 — DYNAMIC DRIVER / DEVICE ID
     // ============================================================
 
-    /*
-     * Driver ID is NOT hard-coded.
-     *
-     * Driver ID comes from:
-     *
-     * driverDevices/<Firebase Auth UID>/driverId
-     */
-
     private var driverId: String? = null
-
-    /*
-     * Firebase Anonymous Auth UID.
-     *
-     * This is the Device Pairing ID.
-     */
 
     private var firebaseUid: String? = null
 
@@ -104,11 +90,6 @@ class MainActivity : AppCompatActivity() {
     private var carNumber: String? = null
 
     private val COMPANY_PHONE = "08062180745"
-
-    /*
-     * QR button is created in code.
-     * No XML change required.
-     */
 
     private var btnPairingQr: Button? = null
 
@@ -173,7 +154,8 @@ class MainActivity : AppCompatActivity() {
 
                     if (location != null) {
 
-                        tvGpsStatus.text = "GPS: Active"
+                        tvGpsStatus.text =
+                            "GPS: Active"
 
                         tvLastLocation.text =
                             "Latitude: ${location.latitude}\n" +
@@ -206,26 +188,41 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (!dutyOn) {
+
                 startDuty()
+
             } else {
+
                 stopDuty()
             }
         }
 
+
         settingsToggle.setOnClickListener {
 
             val show =
-                settingsPanel.visibility != android.view.View.VISIBLE
+                settingsPanel.visibility !=
+                        android.view.View.VISIBLE
 
             settingsPanel.visibility =
                 if (show) {
+
                     android.view.View.VISIBLE
+
                 } else {
+
                     android.view.View.GONE
                 }
 
             settingsToggle.text =
-                if (show) "⚙ Settings  ▲" else "⚙ Settings  ▼"
+                if (show) {
+
+                    "⚙ Settings  ▲"
+
+                } else {
+
+                    "⚙ Settings  ▼"
+                }
         }
 
         restoreDutyState()
@@ -233,7 +230,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 06A — NEW DRIVER DASHBOARD UI
+    // SERIAL NO. 06A — SAFETY CAB DRIVER DASHBOARD
     // ============================================================
 
     private fun createDashboard() {
@@ -249,6 +246,7 @@ class MainActivity : AppCompatActivity() {
 
         scroll.setBackgroundColor(Color.WHITE)
 
+
         val root =
             LinearLayout(this)
 
@@ -256,46 +254,77 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.VERTICAL
 
         root.setPadding(
-            dp(16),
             dp(14),
-            dp(16),
+            dp(10),
+            dp(14),
             dp(24)
         )
 
         scroll.addView(root)
 
-        val header =
-            TextView(this)
 
-        header.text =
-            "SAFETY CAB\nDriver Panel"
+        // ========================================================
+        // SAFETY CAB COMPLETE LOGO
+        // ========================================================
 
-        header.textSize =
-            25f
+        val logoContainer =
+            LinearLayout(this)
 
-        header.setTypeface(
-            null,
-            android.graphics.Typeface.BOLD
-        )
+        logoContainer.orientation =
+            LinearLayout.VERTICAL
 
-        header.gravity =
+        logoContainer.gravity =
             Gravity.CENTER
 
-        header.setTextColor(
-            Color.rgb(0, 70, 145)
+        logoContainer.setBackgroundColor(
+            Color.WHITE
         )
 
-        header.setPadding(
-            0,
+        logoContainer.setPadding(
             dp(4),
-            0,
-            dp(12)
+            dp(4),
+            dp(4),
+            dp(4)
         )
+
+
+        val logo =
+            ImageView(this)
+
+        logo.setImageResource(
+            R.drawable.file_000000005080820eb97aa57d3fa76943
+        )
+
+        logo.scaleType =
+            ImageView.ScaleType.FIT_CENTER
+
+        logo.contentDescription =
+            "Safety Cab Logo"
+
+
+        logoContainer.addView(
+            logo,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(210)
+            )
+        )
+
 
         root.addView(
-            header,
-            lp()
+            logoContainer,
+            marginLp(
+                0,
+                0,
+                0,
+                6
+            )
         )
+
+
+        // ========================================================
+        // DUTY STATUS — TOP
+        // ========================================================
 
         val dutyCard =
             LinearLayout(this)
@@ -314,8 +343,13 @@ class MainActivity : AppCompatActivity() {
         )
 
         dutyCard.setBackgroundColor(
-            Color.rgb(239, 247, 255)
+            Color.rgb(
+                239,
+                247,
+                255
+            )
         )
+
 
         val dutyLabel =
             TextView(this)
@@ -332,8 +366,13 @@ class MainActivity : AppCompatActivity() {
         )
 
         dutyLabel.setTextColor(
-            Color.rgb(0, 70, 145)
+            Color.rgb(
+                0,
+                70,
+                145
+            )
         )
+
 
         dutyCard.addView(
             dutyLabel,
@@ -343,6 +382,7 @@ class MainActivity : AppCompatActivity() {
                 1f
             )
         )
+
 
         btnDuty =
             Switch(this)
@@ -357,8 +397,13 @@ class MainActivity : AppCompatActivity() {
             false
 
         btnDuty.setTextColor(
-            Color.rgb(0, 70, 145)
+            Color.rgb(
+                0,
+                70,
+                145
+            )
         )
+
 
         dutyCard.addView(
             btnDuty,
@@ -368,10 +413,17 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+
         root.addView(
             dutyCard,
-            marginLp(0, 0, 0, 4)
+            marginLp(
+                0,
+                0,
+                0,
+                4
+            )
         )
+
 
         tvDutyStatus =
             TextView(this)
@@ -389,16 +441,29 @@ class MainActivity : AppCompatActivity() {
             Color.DKGRAY
         )
 
+
         root.addView(
             tvDutyStatus,
-            marginLp(0, 0, 0, 12)
+            marginLp(
+                0,
+                0,
+                0,
+                12
+            )
         )
+
+
+        // ========================================================
+        // DRIVER PROFILE
+        // ========================================================
 
         val driverCard =
             createInfoCard()
 
+
         ivDriverPhoto =
             createPhotoView()
+
 
         driverCard.addView(
             ivDriverPhoto,
@@ -407,6 +472,7 @@ class MainActivity : AppCompatActivity() {
                 dp(105)
             )
         )
+
 
         val driverInfo =
             LinearLayout(this)
@@ -421,6 +487,7 @@ class MainActivity : AppCompatActivity() {
             0
         )
 
+
         driverInfo.addView(
             textView(
                 "DRIVER",
@@ -430,20 +497,27 @@ class MainActivity : AppCompatActivity() {
             lp()
         )
 
+
         val idView =
             textView(
                 "Not Registered",
                 25f,
-                Color.rgb(0, 70, 145)
+                Color.rgb(
+                    0,
+                    70,
+                    145
+                )
             )
 
         idView.id =
             R.id.tvDriverId
 
+
         driverInfo.addView(
             idView,
             lp()
         )
+
 
         tvDriverPhotoStatus =
             textView(
@@ -452,10 +526,12 @@ class MainActivity : AppCompatActivity() {
                 Color.GRAY
             )
 
+
         driverInfo.addView(
             tvDriverPhotoStatus,
             lp()
         )
+
 
         driverCard.addView(
             driverInfo,
@@ -466,16 +542,29 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+
         root.addView(
             driverCard,
-            marginLp(0, 0, 0, 10)
+            marginLp(
+                0,
+                0,
+                0,
+                10
+            )
         )
+
+
+        // ========================================================
+        // CAR INFORMATION
+        // ========================================================
 
         val carCard =
             createInfoCard()
 
+
         ivCarPhoto =
             createPhotoView()
+
 
         carCard.addView(
             ivCarPhoto,
@@ -484,6 +573,7 @@ class MainActivity : AppCompatActivity() {
                 dp(105)
             )
         )
+
 
         val carInfo =
             LinearLayout(this)
@@ -498,6 +588,7 @@ class MainActivity : AppCompatActivity() {
             0
         )
 
+
         carInfo.addView(
             textView(
                 "CAR NUMBER",
@@ -507,17 +598,24 @@ class MainActivity : AppCompatActivity() {
             lp()
         )
 
+
         tvCarNumber =
             textView(
                 "Not Registered",
                 23f,
-                Color.rgb(0, 70, 145)
+                Color.rgb(
+                    0,
+                    70,
+                    145
+                )
             )
+
 
         carInfo.addView(
             tvCarNumber,
             lp()
         )
+
 
         tvCarPhotoStatus =
             textView(
@@ -526,10 +624,12 @@ class MainActivity : AppCompatActivity() {
                 Color.GRAY
             )
 
+
         carInfo.addView(
             tvCarPhotoStatus,
             lp()
         )
+
 
         carCard.addView(
             carInfo,
@@ -540,10 +640,21 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+
         root.addView(
             carCard,
-            marginLp(0, 0, 0, 12)
+            marginLp(
+                0,
+                0,
+                0,
+                12
+            )
         )
+
+
+        // ========================================================
+        // HELP & SUPPORT
+        // ========================================================
 
         val supportButton =
             Button(this)
@@ -562,8 +673,13 @@ class MainActivity : AppCompatActivity() {
         )
 
         supportButton.setBackgroundColor(
-            Color.rgb(0, 94, 180)
+            Color.rgb(
+                0,
+                94,
+                180
+            )
         )
+
 
         supportButton.setOnClickListener {
 
@@ -580,14 +696,25 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
 
             } catch (e: Exception) {
-                // Ignore if no dialer is available.
+                // Ignore if dialer is unavailable.
             }
         }
 
+
         root.addView(
             supportButton,
-            marginLp(0, 0, 0, 12)
+            marginLp(
+                0,
+                0,
+                0,
+                12
+            )
         )
+
+
+        // ========================================================
+        // SETTINGS BUTTON
+        // ========================================================
 
         settingsToggle =
             Button(this)
@@ -602,13 +729,28 @@ class MainActivity : AppCompatActivity() {
             16f
 
         settingsToggle.setTextColor(
-            Color.rgb(0, 70, 145)
+            Color.rgb(
+                0,
+                70,
+                145
+            )
         )
+
 
         root.addView(
             settingsToggle,
-            marginLp(0, 0, 0, 4)
+            marginLp(
+                0,
+                0,
+                0,
+                4
+            )
         )
+
+
+        // ========================================================
+        // SETTINGS PANEL
+        // ========================================================
 
         settingsPanel =
             LinearLayout(this)
@@ -624,11 +766,16 @@ class MainActivity : AppCompatActivity() {
         )
 
         settingsPanel.setBackgroundColor(
-            Color.rgb(247, 250, 253)
+            Color.rgb(
+                247,
+                250,
+                253
+            )
         )
 
         settingsPanel.visibility =
             android.view.View.GONE
+
 
         tvConnectionStatus =
             textView(
@@ -637,10 +784,17 @@ class MainActivity : AppCompatActivity() {
                 Color.DKGRAY
             )
 
+
         settingsPanel.addView(
             tvConnectionStatus,
-            marginLp(0, 0, 0, 6)
+            marginLp(
+                0,
+                0,
+                0,
+                6
+            )
         )
+
 
         tvGpsStatus =
             textView(
@@ -649,10 +803,17 @@ class MainActivity : AppCompatActivity() {
                 Color.DKGRAY
             )
 
+
         settingsPanel.addView(
             tvGpsStatus,
-            marginLp(0, 0, 0, 6)
+            marginLp(
+                0,
+                0,
+                0,
+                6
+            )
         )
+
 
         tvTrackingStatus =
             textView(
@@ -661,39 +822,73 @@ class MainActivity : AppCompatActivity() {
                 Color.DKGRAY
             )
 
+
         settingsPanel.addView(
             tvTrackingStatus,
-            marginLp(0, 0, 0, 6)
+            marginLp(
+                0,
+                0,
+                0,
+                6
+            )
         )
+
 
         tvLastLocation =
             textView(
-                "Latitude: --\nLongitude: --\nLast Update: --",
+                "Latitude: --\n" +
+                "Longitude: --\n" +
+                "Last Update: --",
                 14f,
                 Color.DKGRAY
             )
 
+
         settingsPanel.addView(
             tvLastLocation,
-            marginLp(0, 0, 0, 4)
+            marginLp(
+                0,
+                0,
+                0,
+                4
+            )
         )
+
 
         root.addView(
             settingsPanel,
             lp()
         )
 
+
+        // ========================================================
+        // SHOW DASHBOARD
+        // ========================================================
+
         setContentView(scroll)
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
 
-    private fun lp(): LinearLayout.LayoutParams =
+    // ============================================================
+    // SERIAL NO. 07 — UI HELPERS
+    // ============================================================
+
+    private fun dp(
+        value: Int
+    ): Int =
+        (
+            value *
+            resources.displayMetrics.density
+        ).toInt()
+
+
+    private fun lp():
+            LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+
 
     private fun marginLp(
         left: Int,
@@ -706,6 +901,7 @@ class MainActivity : AppCompatActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply {
+
             setMargins(
                 dp(left),
                 dp(top),
@@ -715,7 +911,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createInfoCard(): LinearLayout {
+
+    private fun createInfoCard():
+            LinearLayout {
 
         return LinearLayout(this).apply {
 
@@ -733,17 +931,27 @@ class MainActivity : AppCompatActivity() {
             )
 
             setBackgroundColor(
-                Color.rgb(247, 250, 253)
+                Color.rgb(
+                    247,
+                    250,
+                    253
+                )
             )
         }
     }
 
-    private fun createPhotoView(): ImageView {
+
+    private fun createPhotoView():
+            ImageView {
 
         return ImageView(this).apply {
 
             setBackgroundColor(
-                Color.rgb(225, 236, 248)
+                Color.rgb(
+                    225,
+                    236,
+                    248
+                )
             )
 
             scaleType =
@@ -754,6 +962,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
 
     private fun textView(
         value: String,
@@ -782,6 +991,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     private fun setDutyUi(
         enabled: Boolean
     ) {
@@ -796,8 +1006,16 @@ class MainActivity : AppCompatActivity() {
             if (enabled) "ON" else "OFF"
 
         tvDutyStatus.text =
-            if (enabled) "ON DUTY" else "OFF DUTY"
+            if (enabled) {
+
+                "ON DUTY"
+
+            } else {
+
+                "OFF DUTY"
+            }
     }
+
 
     private fun updateProfileUi() {
 
@@ -806,26 +1024,45 @@ class MainActivity : AppCompatActivity() {
         )?.text =
             driverId ?: "Not Registered"
 
+
         tvCarNumber.text =
             carNumber
-                ?.takeIf { it.isNotBlank() }
+                ?.takeIf {
+                    it.isNotBlank()
+                }
                 ?: "Not Registered"
 
+
         tvDriverPhotoStatus.text =
-            if (driverPhotoUrl.isNullOrBlank()) {
+            if (
+                driverPhotoUrl.isNullOrBlank()
+            ) {
+
                 "Driver photo not registered"
+
             } else {
+
                 "Driver photo available"
             }
 
+
         tvCarPhotoStatus.text =
-            if (carPhotoUrl.isNullOrBlank()) {
+            if (
+                carPhotoUrl.isNullOrBlank()
+            ) {
+
                 "Car photo not registered"
+
             } else {
+
                 "Car photo available"
             }
 
-        if (!driverPhotoUrl.isNullOrBlank()) {
+
+        if (
+            !driverPhotoUrl.isNullOrBlank()
+        ) {
+
             loadImageIntoView(
                 driverPhotoUrl!!,
                 ivDriverPhoto,
@@ -834,7 +1071,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        if (!carPhotoUrl.isNullOrBlank()) {
+
+        if (
+            !carPhotoUrl.isNullOrBlank()
+        ) {
+
             loadImageIntoView(
                 carPhotoUrl!!,
                 ivCarPhoto,
@@ -843,6 +1084,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
 
     private fun loadImageIntoView(
         url: String,
@@ -859,15 +1101,22 @@ class MainActivity : AppCompatActivity() {
                     URL(url)
                         .openStream()
                         .use {
-                            BitmapFactory.decodeStream(it)
+
+                            BitmapFactory
+                                .decodeStream(it)
                         }
+
 
                 runOnUiThread {
 
                     if (bitmap != null) {
 
-                        imageView.setImageBitmap(bitmap)
-                        statusView.text = successText
+                        imageView.setImageBitmap(
+                            bitmap
+                        )
+
+                        statusView.text =
+                            successText
 
                     } else {
 
@@ -889,7 +1138,8 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    // SERIAL NO. 07 — LOCAL DUTY PREFERENCES
+    // ============================================================
+    // SERIAL NO. 08 — LOCAL DUTY PREFERENCES
     // ============================================================
 
     private fun getPreferences() =
@@ -914,7 +1164,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 08 — RESTORE DUTY
+    // SERIAL NO. 09 — RESTORE DUTY
     // ============================================================
 
     private fun restoreDutyState() {
@@ -937,7 +1187,6 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Tracking: Stopped"
 
-
             ensurePairingQrButton()
 
             return
@@ -957,7 +1206,6 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Tracking: Driver verification pending"
 
-
             ensurePairingQrButton()
 
             return
@@ -971,7 +1219,6 @@ class MainActivity : AppCompatActivity() {
 
         tvTrackingStatus.text =
             "Tracking: Starting..."
-
 
         ensurePairingQrButton()
 
@@ -994,7 +1241,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 09 — LOCATION PERMISSIONS
+    // SERIAL NO. 10 — LOCATION PERMISSIONS
     // ============================================================
 
     private fun hasLocationPermission(): Boolean {
@@ -1030,7 +1277,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 10 — FIREBASE INITIALIZATION
+    // SERIAL NO. 11 — FIREBASE INITIALIZATION
     // ============================================================
 
     private fun initializeFirebase() {
@@ -1047,24 +1294,31 @@ class MainActivity : AppCompatActivity() {
 
                 val options =
                     FirebaseOptions.Builder()
+
                         .setApiKey(
                             "AIzaSyBqSICccKKX94x04rjCUHXjW5EJoaI10Bc"
                         )
+
                         .setApplicationId(
                             "1:900129993912:web:48c98c4d62154d0f39704d"
                         )
+
                         .setProjectId(
                             "safety-cab-radar"
                         )
+
                         .setDatabaseUrl(
                             "https://safety-cab-radar-default-rtdb.asia-southeast1.firebasedatabase.app"
                         )
+
                         .setStorageBucket(
                             "safety-cab-radar.firebasestorage.app"
                         )
+
                         .setGcmSenderId(
                             "900129993912"
                         )
+
                         .build()
 
 
@@ -1078,7 +1332,8 @@ class MainActivity : AppCompatActivity() {
 
             if (firebaseApp == null) {
 
-                firebaseReady = false
+                firebaseReady =
+                    false
 
                 tvConnectionStatus.text =
                     "Firebase: Initialization Failed"
@@ -1107,9 +1362,11 @@ class MainActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
 
-            firebaseReady = false
+            firebaseReady =
+                false
 
-            driverReady = false
+            driverReady =
+                false
 
             tvConnectionStatus.text =
                 "Firebase: Error"
@@ -1118,7 +1375,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 11 — FIREBASE ANONYMOUS LOGIN
+    // SERIAL NO. 12 — FIREBASE ANONYMOUS LOGIN
     // ============================================================
 
     private fun signInFirebase() {
@@ -1127,7 +1384,8 @@ class MainActivity : AppCompatActivity() {
             firebaseAuth.currentUser != null
         ) {
 
-            firebaseReady = true
+            firebaseReady =
+                true
 
             firebaseUid =
                 firebaseAuth
@@ -1154,7 +1412,8 @@ class MainActivity : AppCompatActivity() {
 
                 if (task.isSuccessful) {
 
-                    firebaseReady = true
+                    firebaseReady =
+                        true
 
                     firebaseUid =
                         firebaseAuth
@@ -1173,21 +1432,24 @@ class MainActivity : AppCompatActivity() {
 
                 } else {
 
-                    firebaseReady = false
+                    firebaseReady =
+                        false
 
-                    driverReady = false
+                    driverReady =
+                        false
 
                     tvConnectionStatus.text =
                         "Firebase: Login Failed"
 
-                    btnDuty.isEnabled = false
+                    btnDuty.isEnabled =
+                        false
                 }
             }
     }
 
 
     // ============================================================
-    // SERIAL NO. 12 — SHOW PAIRING ID
+    // SERIAL NO. 13 — SHOW PAIRING ID
     // ============================================================
 
     private fun showPairingId() {
@@ -1203,14 +1465,13 @@ class MainActivity : AppCompatActivity() {
             tvTrackingStatus.text =
                 "Pairing ID:\n$uid"
 
-
             ensurePairingQrButton()
         }
     }
 
 
     // ============================================================
-    // SERIAL NO. 13 — CREATE PAIRING QR BUTTON
+    // SERIAL NO. 14 — CREATE PAIRING QR BUTTON
     // ============================================================
 
     private fun ensurePairingQrButton() {
@@ -1250,10 +1511,8 @@ class MainActivity : AppCompatActivity() {
         val button =
             Button(this)
 
-
         button.text =
             "📷 Scanner / Pairing QR"
-
 
         button.isAllCaps =
             false
@@ -1300,7 +1559,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 14 — SHOW PAIRING QR
+    // SERIAL NO. 15 — SHOW PAIRING QR
     // ============================================================
 
     private fun showPairingQrDialog() {
@@ -1314,16 +1573,20 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             AlertDialog.Builder(this)
+
                 .setTitle(
                     "Pairing QR"
                 )
+
                 .setMessage(
                     "Firebase Pairing ID अभी उपलब्ध नहीं है."
                 )
+
                 .setPositiveButton(
                     "OK",
                     null
                 )
+
                 .show()
 
             return
@@ -1343,10 +1606,8 @@ class MainActivity : AppCompatActivity() {
             val container =
                 LinearLayout(this)
 
-
             container.orientation =
                 LinearLayout.VERTICAL
-
 
             container.gravity =
                 Gravity.CENTER
@@ -1370,18 +1631,14 @@ class MainActivity : AppCompatActivity() {
             val title =
                 TextView(this)
 
-
             title.text =
                 "Driver Pairing QR"
-
 
             title.textSize =
                 20f
 
-
             title.gravity =
                 Gravity.CENTER
-
 
             title.setTextColor(
                 Color.BLACK
@@ -1400,11 +1657,9 @@ class MainActivity : AppCompatActivity() {
             val imageView =
                 ImageView(this)
 
-
             imageView.setImageBitmap(
                 qrBitmap
             )
-
 
             imageView.adjustViewBounds =
                 true
@@ -1416,6 +1671,7 @@ class MainActivity : AppCompatActivity() {
                         280 *
                         resources.displayMetrics.density
                     ).toInt(),
+
                     (
                         280 *
                         resources.displayMetrics.density
@@ -1426,13 +1682,11 @@ class MainActivity : AppCompatActivity() {
             imageParams.gravity =
                 Gravity.CENTER
 
-
             imageParams.topMargin =
                 (
                     15 *
                     resources.displayMetrics.density
                 ).toInt()
-
 
             imageParams.bottomMargin =
                 (
@@ -1450,18 +1704,14 @@ class MainActivity : AppCompatActivity() {
             val uidText =
                 TextView(this)
 
-
             uidText.text =
                 "Pairing ID:\n$uid"
-
 
             uidText.textSize =
                 13f
 
-
             uidText.gravity =
                 Gravity.CENTER
-
 
             uidText.setTextColor(
                 Color.DKGRAY
@@ -1478,35 +1728,42 @@ class MainActivity : AppCompatActivity() {
 
 
             AlertDialog.Builder(this)
+
                 .setView(
                     container
                 )
+
                 .setNegativeButton(
                     "CLOSE",
                     null
                 )
+
                 .show()
 
         } catch (e: Exception) {
 
             AlertDialog.Builder(this)
+
                 .setTitle(
                     "QR Error"
                 )
+
                 .setMessage(
                     "Pairing QR generate नहीं हो पाया.\n\n${e.message}"
                 )
+
                 .setPositiveButton(
                     "OK",
                     null
                 )
+
                 .show()
         }
     }
 
 
     // ============================================================
-    // SERIAL NO. 15 — QR BITMAP GENERATOR
+    // SERIAL NO. 16 — QR BITMAP GENERATOR
     // ============================================================
 
     private fun generateQrBitmap(
@@ -1544,6 +1801,7 @@ class MainActivity : AppCompatActivity() {
                 bitmap.setPixel(
                     x,
                     y,
+
                     if (
                         bitMatrix.get(
                             x,
@@ -1567,7 +1825,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 16 — LOAD DRIVER ID
+    // SERIAL NO. 17 — LOAD DRIVER ID
     // ============================================================
 
     private fun loadDriverId() {
@@ -1578,9 +1836,11 @@ class MainActivity : AppCompatActivity() {
 
         if (user == null) {
 
-            driverReady = false
+            driverReady =
+                false
 
-            btnDuty.isEnabled = false
+            btnDuty.isEnabled =
+                false
 
             tvTrackingStatus.text =
                 "Tracking: Firebase identity unavailable"
@@ -1611,6 +1871,7 @@ class MainActivity : AppCompatActivity() {
                 "driverId"
             )
             .get()
+
             .addOnSuccessListener { snapshot ->
 
                 val value =
@@ -1629,7 +1890,11 @@ class MainActivity : AppCompatActivity() {
                             .trim()
                             .toUpperCase()
 
-                    loadDriverProfile(snapshot)
+
+                    loadDriverProfile(
+                        snapshot
+                    )
+
 
                     driverReady =
                         true
@@ -1669,10 +1934,8 @@ class MainActivity : AppCompatActivity() {
                     driverId =
                         null
 
-
                     driverReady =
                         false
-
 
                     btnDuty.isEnabled =
                         false
@@ -1680,7 +1943,6 @@ class MainActivity : AppCompatActivity() {
 
                     tvDutyStatus.text =
                         "DRIVER NOT REGISTERED"
-
 
                     btnDuty.text =
                         "START DUTY"
@@ -1703,15 +1965,14 @@ class MainActivity : AppCompatActivity() {
                 }
 
             }
+
             .addOnFailureListener {
 
                 driverId =
                     null
 
-
                 driverReady =
                     false
-
 
                 btnDuty.isEnabled =
                     false
@@ -1728,37 +1989,83 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // ============================================================
-    // SERIAL NO. 16A — DRIVER PROFILE DATA
+    // SERIAL NO. 17A — DRIVER PROFILE DATA
     // ============================================================
 
     private fun loadDriverProfile(
-        snapshot: com.google.firebase.database.DataSnapshot
+        snapshot:
+        com.google.firebase.database.DataSnapshot
     ) {
 
         driverPhotoUrl =
             firstNonBlank(
-                snapshot.child("driverPhotoUrl").getValue(String::class.java),
-                snapshot.child("photoUrl").getValue(String::class.java),
-                snapshot.child("profilePhotoUrl").getValue(String::class.java)
+                snapshot.child(
+                    "driverPhotoUrl"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "photoUrl"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "profilePhotoUrl"
+                ).getValue(
+                    String::class.java
+                )
             )
+
 
         carPhotoUrl =
             firstNonBlank(
-                snapshot.child("carPhotoUrl").getValue(String::class.java),
-                snapshot.child("vehiclePhotoUrl").getValue(String::class.java),
-                snapshot.child("vehiclePhoto").getValue(String::class.java)
+                snapshot.child(
+                    "carPhotoUrl"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "vehiclePhotoUrl"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "vehiclePhoto"
+                ).getValue(
+                    String::class.java
+                )
             )
+
 
         carNumber =
             firstNonBlank(
-                snapshot.child("carNumber").getValue(String::class.java),
-                snapshot.child("vehicleNumber").getValue(String::class.java),
-                snapshot.child("registrationNumber").getValue(String::class.java)
+                snapshot.child(
+                    "carNumber"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "vehicleNumber"
+                ).getValue(
+                    String::class.java
+                ),
+
+                snapshot.child(
+                    "registrationNumber"
+                ).getValue(
+                    String::class.java
+                )
             )
+
 
         updateProfileUi()
     }
+
 
     private fun firstNonBlank(
         vararg values: String?
@@ -1767,6 +2074,7 @@ class MainActivity : AppCompatActivity() {
         for (value in values) {
 
             if (!value.isNullOrBlank()) {
+
                 return value.trim()
             }
         }
@@ -1775,7 +2083,8 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    // SERIAL NO. 17 — START DUTY
+    // ============================================================
+    // SERIAL NO. 18 — START DUTY
     // ============================================================
 
     private fun startDuty() {
@@ -1798,12 +2107,15 @@ class MainActivity : AppCompatActivity() {
 
             setDutyUi(false)
 
+
             ActivityCompat.requestPermissions(
                 this,
+
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 ),
+
                 LOCATION_PERMISSION_REQUEST
             )
 
@@ -1848,6 +2160,7 @@ class MainActivity : AppCompatActivity() {
                         "Tracking: Open App Settings"
                 }
 
+
                 setDutyUi(false)
 
                 return
@@ -1856,11 +2169,14 @@ class MainActivity : AppCompatActivity() {
 
                 setDutyUi(false)
 
+
                 ActivityCompat.requestPermissions(
                     this,
+
                     arrayOf(
                         Manifest.permission.ACCESS_BACKGROUND_LOCATION
                     ),
+
                     BACKGROUND_LOCATION_PERMISSION_REQUEST
                 )
 
@@ -1872,9 +2188,11 @@ class MainActivity : AppCompatActivity() {
         dutyOn =
             true
 
+
         saveDutyState(
             true
         )
+
 
         setDutyUi(true)
 
@@ -1893,13 +2211,12 @@ class MainActivity : AppCompatActivity() {
 
         startDriverLocationService()
 
-
         startLocationUpdates()
     }
 
 
     // ============================================================
-    // SERIAL NO. 18 — FOREGROUND LOCATION SERVICE
+    // SERIAL NO. 19 — FOREGROUND LOCATION SERVICE
     // ============================================================
 
     private fun startDriverLocationService() {
@@ -1936,7 +2253,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 19 — LOCATION UPDATES
+    // SERIAL NO. 20 — LOCATION UPDATES
     // ============================================================
 
     private fun startLocationUpdates() {
@@ -1982,7 +2299,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 20 — SEND LOCATION TO FIREBASE
+    // SERIAL NO. 21 — SEND LOCATION TO FIREBASE
     // ============================================================
 
     private fun sendLocationToFirebase(
@@ -2031,34 +2348,26 @@ class MainActivity : AppCompatActivity() {
             locationData["driverId"] =
                 currentDriverId
 
-
             locationData["lat"] =
                 location.latitude
-
 
             locationData["lng"] =
                 location.longitude
 
-
             locationData["online"] =
                 true
-
 
             locationData["duty"] =
                 dutyOn
 
-
             locationData["accuracy"] =
                 location.accuracy.toDouble()
-
 
             locationData["speed"] =
                 location.speed.toDouble()
 
-
             locationData["heading"] =
                 location.bearing.toDouble()
-
 
             locationData["updatedAt"] =
                 System.currentTimeMillis()
@@ -2068,11 +2377,13 @@ class MainActivity : AppCompatActivity() {
                 .setValue(
                     locationData
                 )
+
                 .addOnSuccessListener {
 
                     tvConnectionStatus.text =
                         "Firebase: Connected"
                 }
+
                 .addOnFailureListener {
 
                     tvConnectionStatus.text =
@@ -2088,7 +2399,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 21 — STOP DUTY
+    // SERIAL NO. 22 — STOP DUTY
     // ============================================================
 
     private fun stopDuty() {
@@ -2161,14 +2472,11 @@ class MainActivity : AppCompatActivity() {
                 updates["driverId"] =
                     driverId!!
 
-
                 updates["online"] =
                     false
 
-
                 updates["duty"] =
                     false
-
 
                 updates["updatedAt"] =
                     System.currentTimeMillis()
@@ -2202,7 +2510,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 22 — PERMISSION RESULT
+    // SERIAL NO. 23 — PERMISSION RESULT
     // ============================================================
 
     override fun onRequestPermissionsResult(
@@ -2267,7 +2575,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 23 — RESUME
+    // SERIAL NO. 24 — RESUME
     // ============================================================
 
     override fun onResume() {
@@ -2302,7 +2610,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ============================================================
-    // SERIAL NO. 24 — DESTROY
+    // SERIAL NO. 25 — DESTROY
     // ============================================================
 
     override fun onDestroy() {
