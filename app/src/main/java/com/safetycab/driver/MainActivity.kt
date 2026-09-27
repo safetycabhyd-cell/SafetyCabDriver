@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.util.Base64
 import android.location.Location
 import android.net.Uri
 import android.os.Build
@@ -35,6 +36,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.database.FirebaseDatabase
 
 import com.google.zxing.BarcodeFormat
@@ -1097,14 +1099,44 @@ class MainActivity : AppCompatActivity() {
 
             try {
 
-                val bitmap =
-                    URL(url)
-                        .openStream()
-                        .use {
+                val bitmap: Bitmap? =
+                    if (url.startsWith("data:image", ignoreCase = true)) {
 
-                            BitmapFactory
-                                .decodeStream(it)
+                        val commaIndex =
+                            url.indexOf(',')
+
+                        if (commaIndex >= 0) {
+
+                            val base64Data =
+                                url.substring(commaIndex + 1)
+
+                            val bytes =
+                                Base64.decode(
+                                    base64Data,
+                                    Base64.DEFAULT
+                                )
+
+                            BitmapFactory.decodeByteArray(
+                                bytes,
+                                0,
+                                bytes.size
+                            )
+
+                        } else {
+
+                            null
                         }
+
+                    } else {
+
+                        URL(url)
+                            .openStream()
+                            .use {
+
+                                BitmapFactory
+                                    .decodeStream(it)
+                            }
+                    }
 
 
                 runOnUiThread {
@@ -1891,9 +1923,7 @@ class MainActivity : AppCompatActivity() {
                             .toUpperCase()
 
 
-                    loadDriverProfile(
-                        snapshot
-                    )
+                    loadDriverProfile()
 
 
                     driverReady =
@@ -1992,78 +2022,110 @@ class MainActivity : AppCompatActivity() {
     // SERIAL NO. 17A — DRIVER PROFILE DATA
     // ============================================================
 
-    private fun loadDriverProfile(
-        snapshot:
-        com.google.firebase.database.DataSnapshot
-    ) {
+    private fun loadDriverProfile() {
 
-        driverPhotoUrl =
-            firstNonBlank(
-                snapshot.child(
-                    "driverPhotoUrl"
-                ).getValue(
-                    String::class.java
-                ),
-
-                snapshot.child(
-                    "photoUrl"
-                ).getValue(
-                    String::class.java
-                ),
-
-                snapshot.child(
-                    "profilePhotoUrl"
-                ).getValue(
-                    String::class.java
-                )
-            )
+        val currentDriverId =
+            driverId
 
 
-        carPhotoUrl =
-            firstNonBlank(
-                snapshot.child(
-                    "carPhotoUrl"
-                ).getValue(
-                    String::class.java
-                ),
+        if (currentDriverId.isNullOrBlank()) {
 
-                snapshot.child(
-                    "vehiclePhotoUrl"
-                ).getValue(
-                    String::class.java
-                ),
+            driverPhotoUrl = null
+            carPhotoUrl = null
+            carNumber = null
 
-                snapshot.child(
-                    "vehiclePhoto"
-                ).getValue(
-                    String::class.java
-                )
-            )
+            updateProfileUi()
+
+            return
+        }
 
 
-        carNumber =
-            firstNonBlank(
-                snapshot.child(
-                    "carNumber"
-                ).getValue(
-                    String::class.java
-                ),
+        FirebaseFirestore
+            .getInstance()
+            .collection("drivers")
+            .document(currentDriverId)
+            .get()
+            .addOnSuccessListener { document ->
 
-                snapshot.child(
-                    "vehicleNumber"
-                ).getValue(
-                    String::class.java
-                ),
+                if (document.exists()) {
 
-                snapshot.child(
-                    "registrationNumber"
-                ).getValue(
-                    String::class.java
-                )
-            )
+                    driverPhotoUrl =
+                        firstNonBlank(
+                            document.getString(
+                                "profilePhoto"
+                            ),
+
+                            document.getString(
+                                "driverPhotoUrl"
+                            ),
+
+                            document.getString(
+                                "photoUrl"
+                            ),
+
+                            document.getString(
+                                "profilePhotoUrl"
+                            )
+                        )
 
 
-        updateProfileUi()
+                    carPhotoUrl =
+                        firstNonBlank(
+                            document.getString(
+                                "carPhoto"
+                            ),
+
+                            document.getString(
+                                "carPhotoUrl"
+                            ),
+
+                            document.getString(
+                                "vehiclePhotoUrl"
+                            ),
+
+                            document.getString(
+                                "vehiclePhoto"
+                            )
+                        )
+
+
+                    carNumber =
+                        firstNonBlank(
+                            document.getString(
+                                "vehicle"
+                            ),
+
+                            document.getString(
+                                "carNumber"
+                            ),
+
+                            document.getString(
+                                "vehicleNumber"
+                            ),
+
+                            document.getString(
+                                "registrationNumber"
+                            )
+                        )
+
+                } else {
+
+                    driverPhotoUrl = null
+                    carPhotoUrl = null
+                    carNumber = null
+                }
+
+
+                updateProfileUi()
+            }
+            .addOnFailureListener {
+
+                driverPhotoUrl = null
+                carPhotoUrl = null
+                carNumber = null
+
+                updateProfileUi()
+            }
     }
 
 
