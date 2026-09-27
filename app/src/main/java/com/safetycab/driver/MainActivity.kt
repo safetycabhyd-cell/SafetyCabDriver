@@ -1996,24 +1996,20 @@ class MainActivity : AppCompatActivity() {
 
             }
 
-            .addOnFailureListener {
+            "Firebase Error:\n${e.message}"
 
-                driverId =
-                    null
+    driverId = null
 
-                driverReady =
-                    false
+    driverReady = false
 
-                btnDuty.isEnabled =
-                    false
+    btnDuty.isEnabled = false
 
+    tvTrackingStatus.text =
+        "Pairing ID:\n$uid\n\n" +
+        "Driver verification failed\n\n" +
+        "Firebase Error:\n${e.message}"
 
-                tvTrackingStatus.text =
-                    "Pairing ID:\n$uid\n\n" +
-                    "Driver verification failed"
-
-
-                ensurePairingQrButton()
+    ensurePairingQrButton()
             }
     }
 
